@@ -1,0 +1,25 @@
+{
+  "name": "narusegawa",
+  "version": "0.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lindenbark/narusegawa.git"
+  },
+  "keywords": [
+    "naru"
+  ],
+  "author": "Team Lindenbark",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lindenbark/narusegawa/issues"
+  },
+  "homepage": "https://github.com/lindenbark/narusegawa#readme",
+  "devDependencies": {
+    "typescript": "^3.4.5"
+  }
+}
