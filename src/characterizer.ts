@@ -7,7 +7,16 @@ export function* characterize(text: string): IterableIterator<CodeCharacter> {
 
 function characterType(codePoint: number): CodeCharacter['type'] {
     if (isClosingDelimiter(codePoint)) return 'closingDelimiter';
-    // TODO
+    if (isClosingQuote(codePoint)) return 'closingQuote';
+    if (isDecimalDigit(codePoint)) return 'decimalDigit';
+    if (isHorizontalSpace(codePoint)) return 'horizontalSpace';
+    if (isNameContinue(codePoint)) return 'nameContinue';
+    if (isNameStart(codePoint)) return 'nameStart';
+    if (isOpeningDelimiter(codePoint)) return 'openingDelimiter';
+    if (isOpeningQuote(codePoint)) return 'openingQuote';
+    if (isPunctuation(codePoint)) return 'punctuation';
+    if (isTogglingQuote(codePoint)) return 'togglingQuote';
+    if (isVerticalSpace(codePoint)) return 'verticalSpace';
     return null as never;
 }
 
@@ -62,6 +71,74 @@ function isClosingDelimiter(codePoint: number) {
     if (codePoint === 0x301e) return true;
     if (codePoint === 0x301f) return true;
     if (codePoint === 0xfd3e) return true;
+    return false;
+}
+
+function isClosingQuote(codePoint: number) {
+    if (codePoint === 0x2019) return true;
+    if (codePoint === 0x203a) return true;
+    if (codePoint === 0x201d) return true;
+    if (codePoint === 0xbb) return true;
+    if (codePoint === 0x2e03) return true;
+    if (codePoint === 0x2e05) return true;
+    if (codePoint === 0x2e0a) return true;
+    if (codePoint === 0x2e0d) return true;
+    if (codePoint === 0x2e1d) return true;
+    if (codePoint === 0x2e21) return true;
+    return false;
+}
+
+function isDecimalDigit(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
+    return false;
+}
+
+function isHorizontalSpace(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
+    return false;
+}
+
+function isNameContinue(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
+    return false;
+}
+
+function isNameStart(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
+    return false;
+}
+
+function isOpeningDelimiter(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
+    return false;
+}
+
+function isOpeningQuote(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
+    return false;
+}
+
+function isPunctuation(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
+    return false;
+}
+
+function isTogglingQuote(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
+    return false;
+}
+
+function isVerticalSpace(codePoint: number) {
+    // TODO
+    if (codePoint === 0x0) return true;
     return false;
 }
 
