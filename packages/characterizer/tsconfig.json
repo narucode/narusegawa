@@ -5,6 +5,7 @@
         "lib": ["es2018"],
         "outDir": "lib",
         "declaration": true,
-        "strict": true
+        "strict": true,
+        "allowSyntheticDefaultImports": true
     }
 }
