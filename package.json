@@ -1,10 +1,19 @@
 {
+  "private": true,
   "name": "narusegawa",
+  "description": "naru impl in js",
   "version": "0.0.0",
-  "description": "",
-  "main": "lib/index.js",
+  "author": "Team Lindenbark",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "build": "tsc"
+    "install": "lerna bootstrap",
+    "publish": "npm run build && lerna publish",
+    "clean": "lerna run clean --parallel",
+    "build": "lerna run build --parallel",
+    "dev": "lerna run dev --parallel"
   },
   "repository": {
     "type": "git",
@@ -13,13 +22,12 @@
   "keywords": [
     "naru"
   ],
-  "author": "Team Lindenbark",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/lindenbark/narusegawa/issues"
   },
   "homepage": "https://github.com/lindenbark/narusegawa#readme",
   "devDependencies": {
-    "typescript": "^3.4.5"
+    "lerna": "^3.14.1",
+    "npm-run-all": "^4.1.5"
   }
 }

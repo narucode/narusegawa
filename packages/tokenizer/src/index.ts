@@ -1,4 +1,4 @@
-import { CodeCharacter } from './characterizer';
+import { CodeCharacter } from '@narucode/characterizer';
 
 export interface Token {
     characters: CodeCharacter[];
