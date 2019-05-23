@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "codegen": "sucrase-node src/scripts/codegen.ts"
+    "datagen": "sucrase-node src/scripts/datagen.ts",
+    "test": "sucrase-node src/test/index.ts"
   },
   "repository": {
     "type": "git",

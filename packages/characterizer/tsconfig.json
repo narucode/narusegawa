@@ -6,6 +6,7 @@
         "outDir": "lib",
         "declaration": true,
         "strict": true,
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "downlevelIteration": true
     }
 }

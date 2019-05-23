@@ -1,1 +1,0 @@
-import regenerate from 'regenerate';
