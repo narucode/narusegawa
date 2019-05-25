@@ -5,7 +5,8 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc -w"
+    "dev": "tsc -w",
+    "test": "sucrase-node src/test/index.ts"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
     "@narucode/characterizer": "^0.0.0"
   },
   "devDependencies": {
+    "sucrase": "^3.10.1",
     "typescript": "^3.4.5"
   }
 }

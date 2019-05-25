@@ -1,4 +1,5 @@
-import { characterize } from '..';
+import { characterize } from '@narucode/characterizer';
+import { tokenize } from '..';
 
 const code = `
 oldint := use naru core 0 (int)
@@ -10,6 +11,7 @@ main := fn {
 `;
 
 const characters = characterize(code);
-for (const character of characters) {
-    console.log(character);
+const tokens = tokenize(characters);
+for (const token of tokens) {
+    console.log(token);
 }
