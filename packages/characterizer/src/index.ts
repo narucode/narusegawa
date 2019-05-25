@@ -3,11 +3,11 @@ import * as data from './data';
 export function* characterize(text: string): IterableIterator<CodeCharacter> {
     for (const char of text) {
         const codePoint = char.codePointAt(0)!;
-        yield { type: characterType(char), char, codePoint } as CodeCharacter;
+        yield { type: characterType(char), char, codePoint };
     }
 }
 
-function characterType(char: string): CodeCharacter['type'] {
+export function characterType(char: string): CodeCharacter['type'] {
     if (data.closingDelimiterRegex.test(char)) return 'closingDelimiter';
     if (data.closingQuoteRegex.test(char)) return 'closingQuote';
     if (data.decimalDigitRegex.test(char)) return 'decimalDigit';
