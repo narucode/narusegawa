@@ -23,13 +23,13 @@ function r2js(name: string, r: ReturnType<typeof import('regenerate')>) {
     ].join('\n');
 }
 
-const closingDelimiter = regenerate(patternSyntaxCodePoints).intersection(closePunctuationCodePoints);
+const closingGrouping = regenerate(patternSyntaxCodePoints).intersection(closePunctuationCodePoints);
 const closingQuote = regenerate(patternSyntaxCodePoints).intersection(finalPunctuationCodePoints);
 const decimalDigit = regenerate(decimalNumberCodePoints);
 const horizontalSpace = regenerate(0x0009, 0x0020, 0x00A0, 0x200E, 0x200F, 0xFEFF);
 const nameStart = regenerate(idStartCodePoints).add(0x005F);
 const nameContinue = regenerate(idContinueCodePoints).remove(nameStart).remove(decimalDigit);
-const openingDelimiter = regenerate(patternSyntaxCodePoints).intersection(openPunctuationCodePoints);
+const openingGrouping = regenerate(patternSyntaxCodePoints).intersection(openPunctuationCodePoints);
 const openingQuote = regenerate(patternSyntaxCodePoints).intersection(initialPunctuationCodePoints);
 const togglingQuote = regenerate(0x0022, 0x0027, 0x0060);
 const punctuation =
@@ -37,19 +37,19 @@ const punctuation =
     .remove(openingQuote)
     .remove(closingQuote)
     .remove(togglingQuote)
-    .remove(openingDelimiter)
-    .remove(closingDelimiter)
+    .remove(openingGrouping)
+    .remove(closingGrouping)
 ;
 const verticalSpace = regenerate(0x000A, 0x000B, 0x000C, 0x000D, 0x0085, 0x2028, 0x2029);
 
 const data = ([
-    ['closingDelimiter', closingDelimiter],
+    ['closingGrouping', closingGrouping],
     ['closingQuote', closingQuote],
     ['decimalDigit', decimalDigit],
     ['horizontalSpace', horizontalSpace],
     ['nameContinue', nameContinue],
     ['nameStart', nameStart],
-    ['openingDelimiter', openingDelimiter],
+    ['openingGrouping', openingGrouping],
     ['openingQuote', openingQuote],
     ['punctuation', punctuation],
     ['togglingQuote', togglingQuote],

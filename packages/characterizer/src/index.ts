@@ -8,13 +8,13 @@ export function* characterize(text: string): IterableIterator<CodeCharacter> {
 }
 
 export function characterType(char: string): CodeCharacter['type'] {
-    if (data.closingDelimiterRegex.test(char)) return 'closingDelimiter';
+    if (data.closingGroupingRegex.test(char)) return 'closingGrouping';
     if (data.closingQuoteRegex.test(char)) return 'closingQuote';
     if (data.decimalDigitRegex.test(char)) return 'decimalDigit';
     if (data.horizontalSpaceRegex.test(char)) return 'horizontalSpace';
     if (data.nameContinueRegex.test(char)) return 'nameContinue';
     if (data.nameStartRegex.test(char)) return 'nameStart';
-    if (data.openingDelimiterRegex.test(char)) return 'openingDelimiter';
+    if (data.openingGroupingRegex.test(char)) return 'openingGrouping';
     if (data.openingQuoteRegex.test(char)) return 'openingQuote';
     if (data.punctuationRegex.test(char)) return 'punctuation';
     if (data.togglingQuoteRegex.test(char)) return 'togglingQuote';
@@ -29,13 +29,13 @@ export interface CodeCharacter {
 }
 
 export type CodeCharacterType =
-    | 'closingDelimiter'
+    | 'closingGrouping'
     | 'closingQuote'
     | 'decimalDigit'
     | 'horizontalSpace'
     | 'nameContinue'
     | 'nameStart'
-    | 'openingDelimiter'
+    | 'openingGrouping'
     | 'openingQuote'
     | 'punctuation'
     | 'togglingQuote'
