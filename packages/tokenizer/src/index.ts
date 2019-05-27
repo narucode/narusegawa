@@ -10,28 +10,27 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
             if (!currentToken) {
                 currentToken = {
                     type: guessTokenTypeByFirstCharacter(character),
-                    characters: [character],
+                    characters: [],
                     offset,
                     col,
                     row,
                 };
-            } else {
-                const pushAction = push[currentToken.type](character, currentToken);
-                if (pushAction !== PushAction.Spit) currentToken.characters.push(character);
-                if (pushAction === PushAction.Continue) continue;
-                yield currentToken;
-                const isNewline = currentToken.type === 'newline';
-                currentToken = (pushAction === PushAction.Consume) ? null : {
-                    type: guessTokenTypeByFirstCharacter(character),
-                    characters: [character],
-                    offset,
-                    col,
-                    row,
-                };
-                if (isNewline) {
-                    col = -1;
-                    ++row;
-                }
+            }
+            const pushAction = push[currentToken.type](character, currentToken);
+            if (pushAction !== PushAction.Spit) currentToken.characters.push(character);
+            if (pushAction === PushAction.Continue) continue;
+            yield currentToken;
+            const isNewline = currentToken.type === 'newline';
+            currentToken = (pushAction === PushAction.Consume) ? null : {
+                type: guessTokenTypeByFirstCharacter(character),
+                characters: [character],
+                offset,
+                col,
+                row,
+            };
+            if (isNewline) {
+                col = -1;
+                ++row;
             }
         } finally {
             ++offset;
@@ -56,12 +55,17 @@ enum PushAction {
     Spit,
 }
 const push: PushRules = {
-    whitespace(character, token) {
-        // TODO
-        return PushAction.Consume;
+    whitespace(character) {
+        return (character.type === 'horizontalSpace') ? PushAction.Continue : PushAction.Spit;
     },
     newline(character, token) {
-        // TODO
+        if (token.characters.length) {
+            const first = token.characters[0].char;
+            const second = character.char;
+            if (first === '\r' && second === '\n') return PushAction.Consume;
+            return PushAction.Spit;
+        }
+        if (character.char === '\r') return PushAction.Continue;
         return PushAction.Consume;
     },
     comment(character, token) {
