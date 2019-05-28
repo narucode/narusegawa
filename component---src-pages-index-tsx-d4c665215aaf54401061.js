@@ -1,0 +1,2 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[1],{140:function(n,e,a){"use strict";a.r(e);var t=a(0),u=a.n(t);e.default=function(){return u.a.createElement("h1",null,"Happy, Naru!")}}}]);
+//# sourceMappingURL=component---src-pages-index-tsx-d4c665215aaf54401061.js.map
