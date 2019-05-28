@@ -16,7 +16,7 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
                     row,
                 };
             }
-            const pushAction = push[currentToken.type](character, currentToken);
+            const pushAction: PushAction = push[currentToken.type](character, currentToken);
             if (pushAction !== PushAction.Spit) currentToken.characters.push(character);
             if (pushAction === PushAction.Continue) continue;
             yield currentToken;

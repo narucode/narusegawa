@@ -3,10 +3,12 @@
         "target": "es5",
         "module": "commonjs",
         "lib": ["es2018"],
-        "outDir": "lib",
         "declaration": true,
         "strict": true,
         "allowSyntheticDefaultImports": true,
         "downlevelIteration": true
-    }
+    },
+    "exclude": [
+        "node_modules"
+    ]
 }

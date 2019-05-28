@@ -1,0 +1,28 @@
+{
+  "private": true,
+  "name": "website",
+  "version": "0.0.0",
+  "scripts": {
+    "gatsby": "sucrase-node ../../node_modules/gatsby/dist/bin/gatsby.js",
+    "clean": "rm -rf ./public",
+    "dev": "run-p dev:**",
+    "dev:gatsby": "npm run gatsby -- develop -H 0.0.0.0",
+    "build": "npm run gatsby -- build --prefix-paths"
+  },
+  "author": "Team Lindenbark",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^12.0.2",
+    "@types/react": "^16.8.18",
+    "@types/react-dom": "^16.8.4",
+    "gatsby": "^2.7.3",
+    "gatsby-plugin-linaria": "^1.1.3",
+    "gatsby-plugin-typescript": "^2.0.15",
+    "linaria": "^1.3.1",
+    "npm-run-all": "^4.1.5",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
+    "sucrase": "^3.10.1",
+    "typescript": "^3.4.5"
+  }
+}
