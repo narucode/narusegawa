@@ -1,4 +1,4 @@
-import { CodeCharacter } from '@narucode/characterizer';
+import { CodeCharacter, CodeCharacterType } from '@narucode/characterizer';
 
 export function* tokenize(characters: IterableIterator<CodeCharacter>): IterableIterator<Token> {
     let offset = 0;
@@ -9,7 +9,7 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
         try {
             if (!currentToken) {
                 currentToken = {
-                    type: guessTokenTypeByFirstCharacter(character),
+                    type: guessingTokenTypeMap[character.type],
                     characters: [],
                     offset,
                     col,
@@ -22,7 +22,7 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
             yield currentToken;
             const isNewline = currentToken.type === 'newline';
             currentToken = (pushAction === PushAction.Consume) ? null : {
-                type: guessTokenTypeByFirstCharacter(character),
+                type: guessingTokenTypeMap[character.type],
                 characters: [character],
                 offset,
                 col,
@@ -40,11 +40,21 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
     if (currentToken) yield currentToken;
 }
 
-function guessTokenTypeByFirstCharacter(character: CodeCharacter): TokenType {
-    if (character.type === 'horizontalSpace') return 'whitespace';
-    // TODO
-    throw new Error(`unknown first character: ${character.char}`);
-}
+// TODO: 토큰타입만 갖고 구분 못하는 경우를 처리하려면 그냥 글자가 뭔지 봐야하지 않을까?
+// `guessTokenTypeByFirstCharacter` 함수로 만들자
+const guessingTokenTypeMap: { [codeType in CodeCharacterType]: TokenType } = {
+    closingGrouping: 'closingGrouping',
+    closingQuote: 'quotedName',
+    decimalDigit: 'numberLiteral',
+    horizontalSpace: 'whitespace',
+    nameContinue: 'bareName',
+    nameStart: 'bareName',
+    openingGrouping: 'openingGrouping',
+    openingQuote: 'quotedName',
+    punctuation: 'punctuation',
+    togglingQuote: 'quotedName',
+    verticalSpace: 'newline',
+};
 
 type PushRules = {
     [ruleName in TokenType]: (character: CodeCharacter, token: Readonly<Token>) => PushAction;
@@ -72,7 +82,11 @@ const push: PushRules = {
         // TODO
         return PushAction.Consume;
     },
-    delimiter(character, token) {
+    openingGrouping(character, token) {
+        // TODO
+        return PushAction.Consume;
+    },
+    closingGrouping(character, token) {
         // TODO
         return PushAction.Consume;
     },
@@ -128,7 +142,8 @@ export type TokenType =
     | 'whitespace'
     | 'newline'
     | 'comment'
-    | 'delimiter'
+    | 'openingGrouping'
+    | 'closingGrouping'
     | 'punctuation'
     | 'keyword'
     | 'bareName'
