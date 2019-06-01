@@ -14,6 +14,8 @@
   "author": "Team Lindenbark",
   "license": "MIT",
   "dependencies": {
+    "@narucode/characterizer": "^0.0.0",
+    "@narucode/tokenizer": "^0.0.0",
     "@types/node": "^12.0.2",
     "@types/react": "^16.8.18",
     "@types/react-dom": "^16.8.4",
