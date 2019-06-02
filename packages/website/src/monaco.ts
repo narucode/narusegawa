@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { EditorDidMount } from 'react-monaco-editor';
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+type IStandaloneCodeEditor = import('monaco-editor/esm/vs/editor/editor.api').editor.IStandaloneCodeEditor;
 
 export interface Position {
     offset: number;
@@ -13,12 +13,10 @@ export interface Selection {
 }
 
 export function useMonaco(init?: EditorDidMount) {
-    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor>();
-    const monacoRef = useRef<typeof monaco>();
+    const editorRef = useRef<IStandaloneCodeEditor>();
     const [selection, setSelection] = useState<Selection | null>(null);
     const editorDidMount = useCallback<EditorDidMount>((editor, monaco) => {
         editorRef.current = editor;
-        monacoRef.current = monaco;
         { // set editor element style
             const element = editor.getDomNode()!;
             Object.assign(element.style, {
@@ -46,11 +44,22 @@ export function useMonaco(init?: EditorDidMount) {
         editorDidMount,
     };
     return {
+        MonacoEditor: useMonacoEditor(),
         selection,
         editorRef,
-        monacoRef,
         props,
     };
+}
+
+export function useMonacoEditor() {
+    type MonacoEditor = typeof import('react-monaco-editor').default;
+    const [MonacoEditor, setMonacoEditor] = useState<MonacoEditor | null>(null);
+    useEffect(() => {
+        import('react-monaco-editor').then(
+            ({ default: MonacoEditor }) => setMonacoEditor(() => MonacoEditor),
+        );
+    }, []);
+    return MonacoEditor;
 }
 
 export function isOnSelection(offset: number, selection: Selection): boolean {
@@ -60,7 +69,7 @@ export function isOnSelection(offset: number, selection: Selection): boolean {
     return true;
 }
 
-function getSelection(editor: monaco.editor.IStandaloneCodeEditor): Selection | null {
+function getSelection(editor: IStandaloneCodeEditor): Selection | null {
     const selection = editor.getSelection();
     if (!selection) return null;
     const model = editor.getModel();

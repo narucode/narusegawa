@@ -2,7 +2,6 @@ import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
 import { css, cx } from 'linaria';
 import { styled } from 'linaria/react';
 import { characterize } from '@narucode/characterizer';
-import MonacoEditor from 'react-monaco-editor';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
@@ -12,17 +11,17 @@ import { getColor } from '../color';
 export default () => {
     const [code, setCode] = useState(initialCode);
     const onChangeHandler = useCallback((code: string) => setCode(code), []);
-    const { props: monacoEditorProps, selection } = useMonaco();
+    const { MonacoEditor, props: monacoEditorProps, selection } = useMonaco();
     return <div className={css`
         display: flex;
         flex: 1;
     `}>
         <Column>
-            <MonacoEditor
+            {MonacoEditor && <MonacoEditor
                 value={code}
                 onChange={onChangeHandler}
                 {...monacoEditorProps}
-            />
+            />}
         </Column>
         <Column>
             <CharacterizerView code={code} selection={selection}/>
