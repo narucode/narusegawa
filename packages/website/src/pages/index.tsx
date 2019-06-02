@@ -7,6 +7,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { useMonaco, isOnSelection, Selection } from '../monaco';
 import { getColor } from '../color';
+import LoadingIndicator from '../components/LoadingIndicator';
 
 export default () => {
     const [code, setCode] = useState(initialCode);
@@ -16,12 +17,17 @@ export default () => {
         display: flex;
         flex: 1;
     `}>
-        <Column>
-            {MonacoEditor && <MonacoEditor
+        <Column className={css`
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+        `}>
+            {MonacoEditor ? <MonacoEditor
                 value={code}
                 onChange={onChangeHandler}
                 {...monacoEditorProps}
-            />}
+            /> : <LoadingIndicator/>}
         </Column>
         <Column>
             <CharacterizerView code={code} selection={selection}/>
@@ -62,8 +68,6 @@ const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }
             itemCount={characters.length}
             itemSize={30}
             className={css`
-                color: ${getColor('foreground')};
-                background-color: ${getColor('background')};
                 border-left: 1px solid ${getColor('foreground')};
             `}>
             {CodeChar}
@@ -74,6 +78,8 @@ const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }
 const Column = styled.div`
     position: relative;
     flex: 1 0 0;
+    color: ${getColor('foreground')};
+    background-color: ${getColor('background')};
 `;
 
 const initialCode = `
