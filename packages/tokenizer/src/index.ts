@@ -47,8 +47,8 @@ const guessingTokenTypeMap: { [codeType in CodeCharacterType]: TokenType } = {
     closingQuote: 'quotedName',
     decimalDigit: 'numberLiteral',
     horizontalSpace: 'whitespace',
-    nameContinue: 'bareName',
-    nameStart: 'bareName',
+    nameContinue: 'unquotedName',
+    nameStart: 'unquotedName',
     openingGrouping: 'openingGrouping',
     openingQuote: 'quotedName',
     punctuation: 'punctuation',
@@ -98,7 +98,7 @@ const push: PushRules = {
         // TODO
         return PushAction.Consume;
     },
-    bareName(character, token) {
+    unquotedName(character, token) {
         // TODO
         return PushAction.Consume;
     },
@@ -146,7 +146,7 @@ export type TokenType =
     | 'closingGrouping'
     | 'punctuation'
     | 'keyword'
-    | 'bareName'
+    | 'unquotedName'
     | 'operatorName'
     | 'quotedName'
     | 'placeholderName'
