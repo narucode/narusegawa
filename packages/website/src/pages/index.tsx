@@ -7,7 +7,7 @@ import { characterize } from '@narucode/characterizer';
 import { tokenize } from '@narucode/tokenizer';
 
 import { useMonaco, isOnSelection, Selection } from '../monaco';
-import { getColor } from '../color';
+import { getColor } from '../theme';
 import LoadingIndicator from '../components/LoadingIndicator';
 
 type Mode = 'characterize' | 'tokenize';
@@ -155,11 +155,12 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
             `,
         )}>
             <div className={css`
-                width: 50px;
+                padding: 0 10px;
+                width: 150px;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
             `}>{token.characters.map(char => char.char).join('')}</div>
-            <div className={css`
-                width: 100px;
-            `}>U+</div>
             <div className={css``}>{token.type}</div>
         </div>;
     }), [tokens]);
