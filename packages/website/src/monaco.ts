@@ -62,11 +62,25 @@ export function useMonacoEditor() {
     return MonacoEditor;
 }
 
-export function isOnSelection(offset: number, selection: Selection): boolean {
-    if (offset === selection.start.offset && offset === selection.end.offset) return true;
+export function isPointOnSelection(offset: number, selection: Selection): boolean {
+    if (isCollapsed(selection) && offset === selection.start.offset) return true;
     if (offset < selection.start.offset) return false;
     if (offset >= selection.end.offset) return false;
     return true;
+}
+
+export function isRangeOnSelection(startOffset: number, endOffset: number, selection: Selection): boolean {
+    if (isCollapsed(selection)) {
+        return (startOffset <= selection.start.offset) && (endOffset > selection.start.offset);
+    }
+    if ((startOffset > selection.start.offset) && (endOffset < selection.end.offset)) return true;
+    if ((endOffset > selection.start.offset) && (endOffset <= selection.end.offset)) return true;
+    if ((startOffset >= selection.start.offset) && (startOffset < selection.end.offset)) return true;
+    return false;
+}
+
+function isCollapsed(selection: Selection): boolean {
+    return selection.start.offset === selection.end.offset;
 }
 
 function getSelection(editor: IStandaloneCodeEditor): Selection | null {

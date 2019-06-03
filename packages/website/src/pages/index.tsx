@@ -6,7 +6,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { characterize } from '@narucode/characterizer';
 import { tokenize } from '@narucode/tokenizer';
 
-import { useMonaco, isOnSelection, Selection } from '../monaco';
+import { useMonaco, isPointOnSelection, isRangeOnSelection, Selection } from '../monaco';
 import { getColor } from '../theme';
 import LoadingIndicator from '../components/LoadingIndicator';
 
@@ -100,7 +100,7 @@ const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }
                 display: flex;
                 align-items: center;
             `,
-            selection && isOnSelection(index, selection) && css`
+            selection && isPointOnSelection(index, selection) && css`
                 color: ${getColor('foreground', 2)};
                 background-color: ${getColor('background', 2)};
             `,
@@ -139,17 +139,23 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
             if (!selection) return;
             if (!listRef.current) return;
             const list = listRef.current;
-            list.scrollToItem(selection[pos].offset);
+            const offset = selection[pos].offset;
+            list.scrollToItem(tokens.findIndex(token => token.offset >= offset));
         }, [selection && selection[pos].offset]);
     }
     const Token = useCallback(memo(({ index, style }: { index: number, style: React.CSSProperties }) => {
         const token = tokens[index];
+        const isOnSelection = selection && isRangeOnSelection(
+            token.offset,
+            token.offset + token.characters.length,
+            selection,
+        );
         return <div style={style} className={cx(
             css`
                 display: flex;
                 align-items: center;
             `,
-            selection && isOnSelection(index, selection) && css`
+            isOnSelection && css`
                 color: ${getColor('foreground', 2)};
                 background-color: ${getColor('background', 2)};
             `,
