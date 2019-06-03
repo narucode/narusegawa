@@ -13,7 +13,8 @@
     "publish": "npm run build && lerna publish",
     "clean": "lerna run clean --parallel",
     "build": "lerna run build --parallel",
-    "dev": "lerna run dev --parallel"
+    "dev": "lerna run dev --parallel",
+    "deploy": "lerna run deploy --parallel"
   },
   "repository": {
     "type": "git",
