@@ -42,12 +42,14 @@ interface CharacterizerViewProps {
 const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }) => {
     const characters = Array.from(characterize(code));
     const listRef = useRef(null as any as List);
-    useEffect(() => {
-        if (!selection) return;
-        if (!listRef.current) return;
-        const list = listRef.current;
-        list.scrollToItem(selection.start.offset);
-    }, [selection]);
+    for (const pos of ['start', 'end'] as const) {
+        useEffect(() => {
+            if (!selection) return;
+            if (!listRef.current) return;
+            const list = listRef.current;
+            list.scrollToItem(selection[pos].offset);
+        }, [selection && selection[pos].offset]);
+    }
     const CodeChar = useCallback(memo(({ index, style }: { index: number, style: React.CSSProperties }) => {
         return <div style={style} className={cx(
             css`
