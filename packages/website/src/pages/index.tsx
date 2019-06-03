@@ -51,16 +51,27 @@ const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }
         }, [selection && selection[pos].offset]);
     }
     const CodeChar = useCallback(memo(({ index, style }: { index: number, style: React.CSSProperties }) => {
+        const codeCharacter = characters[index];
         return <div style={style} className={cx(
             css`
                 display: flex;
+                align-items: center;
                 padding-left: 10px;
             `,
             selection && isOnSelection(index, selection) && css`
                 color: ${getColor('foreground', 2)};
                 background-color: ${getColor('background', 2)};
             `,
-        )}>{ JSON.stringify(characters[index]) }</div>;
+        )}>
+            <div className={css`
+                width: 50px;
+                text-align: center;
+            `}>{codeCharacter.char}</div>
+            <div className={css`
+                width: 100px;
+            `}>U+{codeCharacter.codePoint.toString(16).padStart(4, '0')}</div>
+            <div className={css``}>{codeCharacter.type}</div>
+        </div>;
     }), [characters]);
     return <AutoSizer>
         {({ width, height }) => <List
