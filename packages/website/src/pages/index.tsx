@@ -21,8 +21,6 @@ export default () => {
         flex: 1;
     `}>
         <Column className={css`
-            display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-size: 50px;
@@ -34,18 +32,19 @@ export default () => {
             /> : <LoadingIndicator/>}
         </Column>
         <Column className={css`
-            overflow: hidden;
             border-left: 1px solid ${getColor('foreground')};
         `}>
             <div>
                 <ModeButton mode='characterize' currentMode={mode} setMode={setMode}/>
                 <ModeButton mode='tokenize' currentMode={mode} setMode={setMode}/>
             </div>
-            {
-                mode === 'characterize' ? <CharacterizerView code={code} selection={selection}/> :
-                mode === 'tokenize' ? <TokenizerView code={code} selection={selection}/> :
-                null
-            }
+            <div className={css`flex: 1 0;`}>
+                {
+                    mode === 'characterize' ? <CharacterizerView code={code} selection={selection}/> :
+                    mode === 'tokenize' ? <TokenizerView code={code} selection={selection}/> :
+                    null
+                }
+            </div>
         </Column>
     </div>;
 };
@@ -140,7 +139,9 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
             if (!listRef.current) return;
             const list = listRef.current;
             const offset = selection[pos].offset;
-            list.scrollToItem(tokens.findIndex(token => token.offset >= offset));
+            list.scrollToItem(tokens.findIndex(
+                token => (offset < token.offset) || (offset < (token.offset + token.characters.length)),
+            ));
         }, [selection && selection[pos].offset]);
     }
     const Token = useCallback(memo(({ index, style }: { index: number, style: React.CSSProperties }) => {
@@ -185,6 +186,8 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
 const Column = styled.div`
     position: relative;
     flex: 1 0 0;
+    display: flex;
+    flex-direction: column;
     color: ${getColor('foreground')};
     background-color: ${getColor('background')};
 `;
