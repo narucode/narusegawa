@@ -83,24 +83,24 @@ const push: PushRules = {
         return PushAction.Consume;
     },
     openingGrouping(character, token) {
-        // TODO
-        return PushAction.Consume;
+        return (character.type === 'openingGrouping') ? PushAction.Continue : PushAction.Spit;
     },
     closingGrouping(character, token) {
-        // TODO
-        return PushAction.Consume;
+        return (character.type === 'closingGrouping') ? PushAction.Continue : PushAction.Spit;
     },
     punctuation(character, token) {
-        // TODO
-        return PushAction.Consume;
+        return (character.type === 'punctuation') ? PushAction.Continue : PushAction.Spit;
     },
     keyword(character, token) {
         // TODO
         return PushAction.Consume;
     },
     unquotedName(character, token) {
-        // TODO
-        return PushAction.Consume;
+        return (
+            (character.type === 'nameStart') ||
+            (character.type === 'nameContinue') ||
+            (character.type === 'decimalDigit')
+        ) ? PushAction.Continue : PushAction.Spit;
     },
     operatorName(character, token) {
         // TODO
