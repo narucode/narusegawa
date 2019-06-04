@@ -11,6 +11,9 @@ export default ({ children }: Props) => {
 };
 
 css`
+    :global(*) {
+        box-sizing: border-box;
+    }
     :global(:root), :global(body) {
         margin: 0;
         width: 100%;

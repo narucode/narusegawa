@@ -28,6 +28,9 @@ export default () => {
             {MonacoEditor ? <MonacoEditor
                 value={code}
                 onChange={onChangeHandler}
+                options={{
+                    fontSize: 16,
+                }}
                 {...monacoEditorProps}
             /> : <LoadingIndicator/>}
         </Column>
@@ -110,7 +113,7 @@ const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }
             `}>{codeCharacter.char}</div>
             <div className={css`
                 width: 100px;
-            `}>U+{codeCharacter.codePoint.toString(16).padStart(4, '0')}</div>
+            `}>U+{codeCharacter.codePoint.toString(16).toUpperCase().padStart(4, '0')}</div>
             <div className={css``}>{codeCharacter.type}</div>
         </div>;
     }), [characters]);
@@ -162,7 +165,7 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
             `,
         )}>
             <div className={css`
-                padding: 0 10px;
+                padding: 0 20px;
                 width: 150px;
                 overflow: hidden;
                 white-space: nowrap;
