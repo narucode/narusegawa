@@ -44,15 +44,15 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
 // `guessTokenTypeByFirstCharacter` 함수로 만들자
 const guessingTokenTypeMap: { [codeType in CodeCharacterType]: TokenType } = {
     closingGrouping: 'closingGrouping',
-    closingQuote: 'quotedName',
+    closingQuote: 'quotedLiteral', // TODO: `closingQuote`로는 토큰이 시작되면 안 됨
     decimalDigit: 'numberLiteral',
     horizontalSpace: 'whitespace',
-    nameContinue: 'unquotedName',
+    nameContinue: 'unquotedName', // TODO: `nameContinue`로는 토큰이 시작되면 안 됨
     nameStart: 'unquotedName',
     openingGrouping: 'openingGrouping',
-    openingQuote: 'quotedName',
+    openingQuote: 'quotedLiteral',
     punctuation: 'punctuation',
-    togglingQuote: 'quotedName',
+    togglingQuote: 'quotedLiteral',
     verticalSpace: 'newline',
 };
 
