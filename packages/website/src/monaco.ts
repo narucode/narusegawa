@@ -73,10 +73,9 @@ export function isRangeOnSelection(startOffset: number, endOffset: number, selec
     if (isCollapsed(selection)) {
         return (startOffset <= selection.start.offset) && (endOffset > selection.start.offset);
     }
-    if ((startOffset > selection.start.offset) && (endOffset < selection.end.offset)) return true;
-    if ((endOffset > selection.start.offset) && (endOffset <= selection.end.offset)) return true;
-    if ((startOffset >= selection.start.offset) && (startOffset < selection.end.offset)) return true;
-    return false;
+    if (startOffset >= selection.end.offset) return false;
+    if (endOffset <= selection.start.offset) return false;
+    return true;
 }
 
 function isCollapsed(selection: Selection): boolean {

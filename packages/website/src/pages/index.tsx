@@ -142,9 +142,10 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
             if (!listRef.current) return;
             const list = listRef.current;
             const offset = selection[pos].offset;
-            list.scrollToItem(tokens.findIndex(
+            const scrollIndex = tokens.findIndex(
                 token => (offset < token.offset) || (offset < (token.offset + token.characters.length)),
-            ));
+            );
+            ~scrollIndex && list.scrollToItem(scrollIndex);
         }, [selection && selection[pos].offset]);
     }
     const Token = useCallback(memo(({ index, style }: { index: number, style: React.CSSProperties }) => {
