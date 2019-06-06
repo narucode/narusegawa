@@ -134,6 +134,10 @@ const push: PushRules = {
     },
     quotedLiteral(character, token) {
         // TODO
+        if (token.characters.length === 1) return ['continue', null];
+        const first = token.characters[0].char;
+        const last = token.characters[token.characters.length - 1].char;
+        if (first !== last) return ['continue', null];
         return ['emit', 'quotedLiteral'];
     },
 }
