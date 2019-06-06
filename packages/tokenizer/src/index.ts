@@ -63,7 +63,7 @@ const guessingTokenTypeMap: { [codeType in CodeCharacterType]: TokenType } = {
     verticalSpace: 'newline',
 };
 
-const eof = { type: '<EOF>', char: '<EOF>', codePoint: 0 };
+const eof = { type: '<EOF>', char: '<EOF>', codePoint: 0 } as const;
 type PushRules = {
     [ruleName in TokenType]: (character: CodeCharacter | typeof eof, token: Readonly<Token>) => PushResult;
 };
@@ -73,28 +73,37 @@ type PushResult =
 ;
 const push: PushRules = {
     whitespace(character) {
-        if (character.type !== 'horizontalSpace') return ['emit', 'whitespace'];
-        return ['continue', null];
+        if (character.type === 'horizontalSpace') return ['continue', null];
+        return ['emit', 'whitespace'];
     },
     newline(character, token) {
         if ((token.characters[0].char === '\r') && (character.char === '\n')) return ['continue', null];
         return ['emit', 'newline'];
     },
     comment(character, token) {
-        // TODO
+        if (character.type !== 'verticalSpace') return ['continue', null];
         return ['emit', 'comment'];
     },
     openingGrouping(character, token) {
-        if (character.type !== 'openingGrouping') return ['emit', 'openingGrouping'];
-        return ['continue', null];
+        if (character.type === 'openingGrouping') return ['continue', null];
+        return ['emit', 'openingGrouping'];
     },
     closingGrouping(character, token) {
-        if (character.type !== 'closingGrouping') return ['emit', 'closingGrouping'];
-        return ['continue', null];
+        if (character.type === 'closingGrouping') return ['continue', null];
+        return ['emit', 'closingGrouping'];
     },
     punctuation(character, token) {
-        if (character.type !== 'punctuation') return ['emit', 'punctuation'];
-        return ['continue', null];
+        if (character.type === 'punctuation') {
+            if (
+                (token.characters.length === 1) &&
+                (token.characters[0].char === '-') &&
+                (character.char === '-')
+            ) {
+                return ['continue', 'comment'];
+            }
+            return ['continue', null];
+        }
+        return ['emit', 'punctuation'];
     },
     keyword(character, token) {
         // TODO: error
