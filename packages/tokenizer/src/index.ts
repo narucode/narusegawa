@@ -10,18 +10,22 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
             if (!currentToken) {
                 currentToken = {
                     type: guessingTokenTypeMap[character.type],
-                    characters: [],
+                    characters: [character],
                     offset,
                     col,
                     row,
                 };
+                continue;
             }
-            const pushAction: PushAction = push[currentToken.type](character, currentToken);
-            if (pushAction !== PushAction.Spit) currentToken.characters.push(character);
-            if (pushAction === PushAction.Continue) continue;
+            const [action, tokenType] = push[currentToken.type](character, currentToken);
+            if (tokenType) currentToken.type = tokenType;
+            if (action === 'continue') {
+                currentToken.characters.push(character);
+                continue;
+            }
             yield currentToken;
             const isNewline = currentToken.type === 'newline';
-            currentToken = (pushAction === PushAction.Consume) ? null : {
+            currentToken = {
                 type: guessingTokenTypeMap[character.type],
                 characters: [character],
                 offset,
@@ -37,7 +41,10 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
             ++col;
         }
     }
-    if (currentToken) yield currentToken;
+    if (!currentToken) return;
+    const [_, tokenType] = push[currentToken.type](eof, currentToken);
+    if (tokenType) currentToken.type = tokenType;
+    yield currentToken;
 }
 
 // TODO: 토큰타입만 갖고 구분 못하는 경우를 처리하려면 그냥 글자가 뭔지 봐야하지 않을까?
@@ -56,71 +63,69 @@ const guessingTokenTypeMap: { [codeType in CodeCharacterType]: TokenType } = {
     verticalSpace: 'newline',
 };
 
+const eof = { type: '<EOF>', char: '<EOF>', codePoint: 0 };
 type PushRules = {
-    [ruleName in TokenType]: (character: CodeCharacter, token: Readonly<Token>) => PushAction;
+    [ruleName in TokenType]: (character: CodeCharacter | typeof eof, token: Readonly<Token>) => PushResult;
 };
-enum PushAction {
-    Continue,
-    Consume,
-    Spit,
-}
+type PushResult =
+    | ['emit', TokenType]
+    | ['continue', TokenType | null]
+;
 const push: PushRules = {
     whitespace(character) {
-        return (character.type === 'horizontalSpace') ? PushAction.Continue : PushAction.Spit;
+        if (character.type !== 'horizontalSpace') return ['emit', 'whitespace'];
+        return ['continue', null];
     },
     newline(character, token) {
-        if (token.characters.length) {
-            const first = token.characters[0].char;
-            const second = character.char;
-            if (first === '\r' && second === '\n') return PushAction.Consume;
-            return PushAction.Spit;
-        }
-        if (character.char === '\r') return PushAction.Continue;
-        return PushAction.Consume;
+        if ((token.characters[0].char === '\r') && (character.char === '\n')) return ['continue', null];
+        return ['emit', 'newline'];
     },
     comment(character, token) {
         // TODO
-        return PushAction.Consume;
+        return ['emit', 'comment'];
     },
     openingGrouping(character, token) {
-        return (character.type === 'openingGrouping') ? PushAction.Continue : PushAction.Spit;
+        if (character.type !== 'openingGrouping') return ['emit', 'openingGrouping'];
+        return ['continue', null];
     },
     closingGrouping(character, token) {
-        return (character.type === 'closingGrouping') ? PushAction.Continue : PushAction.Spit;
+        if (character.type !== 'closingGrouping') return ['emit', 'closingGrouping'];
+        return ['continue', null];
     },
     punctuation(character, token) {
-        return (character.type === 'punctuation') ? PushAction.Continue : PushAction.Spit;
+        if (character.type !== 'punctuation') return ['emit', 'punctuation'];
+        return ['continue', null];
     },
     keyword(character, token) {
-        // TODO
-        return PushAction.Consume;
+        // TODO: error
+        return ['emit', 'keyword'];
     },
     unquotedName(character, token) {
-        return (
+        if (
             (character.type === 'nameStart') ||
             (character.type === 'nameContinue') ||
             (character.type === 'decimalDigit')
-        ) ? PushAction.Continue : PushAction.Spit;
-    },
-    operatorName(character, token) {
-        // TODO
-        return PushAction.Consume;
+        ) return ['continue', null];
+        if ((token.characters.length === 1) && (token.characters[0].char === '_')) {
+            return ['emit', 'placeholderName'];
+        }
+        return ['emit', 'unquotedName'];
     },
     quotedName(character, token) {
         // TODO
-        return PushAction.Consume;
+        return ['emit', 'quotedName'];
     },
     placeholderName(character, token) {
-        // TODO
-        return PushAction.Consume;
+        // TODO: error
+        return ['emit', 'placeholderName'];
     },
     numberLiteral(character, token) {
         // TODO
-        return PushAction.Consume;
+        return ['emit', 'numberLiteral'];
     },
     quotedLiteral(character, token) {
         // TODO
-        return PushAction.Consume;
+        return ['emit', 'quotedLiteral'];
     },
 }
 
@@ -147,7 +152,6 @@ export type TokenType =
     | 'punctuation'
     | 'keyword'
     | 'unquotedName'
-    | 'operatorName'
     | 'quotedName'
     | 'placeholderName'
     | 'numberLiteral'
