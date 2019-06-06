@@ -2,6 +2,8 @@ import { useRef, useCallback, useEffect, useState } from 'react';
 import { EditorDidMount } from 'react-monaco-editor';
 type IStandaloneCodeEditor = import('monaco-editor/esm/vs/editor/editor.api').editor.IStandaloneCodeEditor;
 
+import { languageConfiguration, tokensProvider } from './monaco-naru-config';
+
 export interface Position {
     offset: number;
     col: number;
@@ -29,6 +31,16 @@ export function useMonaco(init?: EditorDidMount) {
             const updateSelection = () => setSelection(getSelection(editor));
             updateSelection();
             editor.onDidChangeCursorSelection(updateSelection);
+        }
+        { // naru language setup
+            monaco.languages.register({
+                id: 'naru',
+                extensions: ['.n'],
+                aliases: ['Naru', 'n', 'naru'],
+                mimetypes: ['text/naru'],
+            });
+            monaco.languages.setLanguageConfiguration('naru', languageConfiguration);
+            monaco.languages.setTokensProvider('naru', tokensProvider);
         }
         init && init(editor, monaco);
     }, []);

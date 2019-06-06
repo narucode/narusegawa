@@ -29,6 +29,7 @@ export default () => {
                 value={code}
                 onChange={onChangeHandler}
                 options={{
+                    language: 'naru',
                     fontSize: 16,
                 }}
                 {...monacoEditorProps}
