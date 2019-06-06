@@ -9,7 +9,7 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
         try {
             if (!currentToken) {
                 currentToken = {
-                    type: guessingTokenTypeMap[character.type],
+                    type: guessTokenType[character.type](character),
                     characters: [character],
                     offset,
                     col,
@@ -26,7 +26,7 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
             yield currentToken;
             const isNewline = currentToken.type === 'newline';
             currentToken = {
-                type: guessingTokenTypeMap[character.type],
+                type: guessTokenType[character.type](character),
                 characters: [character],
                 offset,
                 col,
@@ -47,20 +47,18 @@ export function* tokenize(characters: IterableIterator<CodeCharacter>): Iterable
     yield currentToken;
 }
 
-// TODO: 토큰타입만 갖고 구분 못하는 경우를 처리하려면 그냥 글자가 뭔지 봐야하지 않을까?
-// `guessTokenTypeByFirstCharacter` 함수로 만들자
-const guessingTokenTypeMap: { [codeType in CodeCharacterType]: TokenType } = {
-    closingGrouping: 'closingGrouping',
-    closingQuote: 'quotedLiteral', // TODO: `closingQuote`로는 토큰이 시작되면 안 됨
-    decimalDigit: 'numberLiteral',
-    horizontalSpace: 'whitespace',
-    nameContinue: 'unquotedName', // TODO: `nameContinue`로는 토큰이 시작되면 안 됨
-    nameStart: 'unquotedName',
-    openingGrouping: 'openingGrouping',
-    openingQuote: 'quotedLiteral',
-    punctuation: 'punctuation',
-    togglingQuote: 'quotedLiteral',
-    verticalSpace: 'newline',
+const guessTokenType: { [codeType in CodeCharacterType]: (character: CodeCharacter) => TokenType } = {
+    closingGrouping: () => 'closingGrouping',
+    closingQuote: () => { throw new Error(); },
+    decimalDigit: () => 'numberLiteral',
+    horizontalSpace: () => 'whitespace',
+    nameContinue: () => { throw new Error(); },
+    nameStart: () => 'unquotedName',
+    openingGrouping: () => 'openingGrouping',
+    openingQuote: () => 'quotedLiteral',
+    punctuation: () => 'punctuation',
+    togglingQuote: character => character.char === '`' ? 'quotedName' : 'quotedLiteral',
+    verticalSpace: () => 'newline',
 };
 
 const eof = { type: '<EOF>', char: '<EOF>', codePoint: 0 } as const;
@@ -106,8 +104,7 @@ const push: PushRules = {
         return ['emit', 'punctuation'];
     },
     keyword(character, token) {
-        // TODO: error
-        return ['emit', 'keyword'];
+        throw new Error();
     },
     unquotedName(character, token) {
         if (
@@ -121,12 +118,12 @@ const push: PushRules = {
         return ['emit', 'unquotedName'];
     },
     quotedName(character, token) {
-        // TODO
+        if (token.characters.length === 1) return ['continue', null];
+        if (token.characters[token.characters.length - 1].char !== '`') return ['continue', null];
         return ['emit', 'quotedName'];
     },
     placeholderName(character, token) {
-        // TODO: error
-        return ['emit', 'placeholderName'];
+        throw new Error();
     },
     numberLiteral(character, token) {
         // TODO
