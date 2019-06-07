@@ -1,5 +1,16 @@
-import { characterize } from '@narucode/characterizer';
-import { tokenize, Token, TokenType } from '@narucode/tokenizer';
+import {
+    characterize,
+    character,
+} from '@narucode/characterizer';
+import {
+    tokenize,
+    getInitialTokenizeState,
+    cloneTokenizeState,
+    equalsTokenizeState,
+    Token,
+    TokenType,
+    TokenizeState,
+} from '@narucode/tokenizer';
 type LanguageConfiguration = import('monaco-editor/esm/vs/editor/editor.api').languages.LanguageConfiguration;
 type TokensProvider = import('monaco-editor/esm/vs/editor/editor.api').languages.TokensProvider;
 type IState = import('monaco-editor/esm/vs/editor/editor.api').languages.IState;
@@ -23,17 +34,35 @@ export const languageConfiguration: LanguageConfiguration = {
     ],
 };
 
-const dummyTokenizerState: IState = { clone() { return this; }, equals() { return true; } };
+class MonacoTokenizerState implements IState {
+    constructor(
+        public tokenizeState: TokenizeState = getInitialTokenizeState(),
+    ) {}
+    clone() {
+        return new MonacoTokenizerState(
+            cloneTokenizeState(this.tokenizeState),
+        );
+    }
+    equals(another: MonacoTokenizerState) {
+        return equalsTokenizeState(this.tokenizeState, another.tokenizeState);
+    }
+}
 export const tokensProvider: TokensProvider = {
-    getInitialState: () => dummyTokenizerState,
-    tokenize: (line) => ({
-        tokens: Array.from(tokenize(characterize(line)))
-            .map(token => ({
-                startIndex: token.offset,
+    getInitialState: () => new MonacoTokenizerState(),
+    tokenize: (line, state: MonacoTokenizerState) => {
+        const tokens = tokenize(
+            characterize(line),
+            state.tokenizeState,
+            character('\n'),
+        );
+        return {
+            tokens: Array.from(tokens).map(token => ({
+                startIndex: token.col,
                 scopes: getScopeFromToken(token),
             })),
-        endState: dummyTokenizerState,
-    }),
+            endState: state,
+        };
+    },
 };
 
 function getScopeFromToken(token: Token): string {

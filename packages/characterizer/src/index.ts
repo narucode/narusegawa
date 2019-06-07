@@ -1,10 +1,15 @@
 import * as data from './data';
 
 export function* characterize(text: string): IterableIterator<CodeCharacter> {
-    for (const char of text) {
-        const codePoint = char.codePointAt(0)!;
-        yield { type: characterType(char), char, codePoint };
-    }
+    for (const char of text) yield character(char);
+}
+
+export function character(char: string): CodeCharacter {
+    return {
+        type: characterType(char),
+        char,
+        codePoint: char.codePointAt(0)!,
+    };
 }
 
 export function characterType(char: string): CodeCharacter['type'] {

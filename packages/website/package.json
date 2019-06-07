@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "gatsby": "sucrase-node ../../node_modules/gatsby/dist/bin/gatsby.js",
-    "clean": "rm -rf ./public",
+    "clean": "rimraf ./public",
     "dev": "run-p dev:**",
     "dev:gatsby": "npm run gatsby -- develop -H 0.0.0.0",
     "build": "npm run gatsby -- build --prefix-paths",
@@ -33,6 +33,7 @@
     "react-monaco-editor": "^0.26.1",
     "react-virtualized-auto-sizer": "^1.0.2",
     "react-window": "^1.8.2",
+    "rimraf": "^2.6.3",
     "sucrase": "^3.10.1",
     "typescript": "^3.4.5"
   }

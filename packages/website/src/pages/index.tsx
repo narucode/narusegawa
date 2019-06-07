@@ -192,6 +192,7 @@ const Column = styled.div`
     position: relative;
     flex: 1 0 0;
     display: flex;
+    overflow: hidden;
     flex-direction: column;
     color: ${getColor('foreground')};
     background-color: ${getColor('background')};
