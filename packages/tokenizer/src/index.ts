@@ -37,6 +37,7 @@ export const eof = {
 
 export interface TokenizeState {
     current: Token | null;
+    context: SyntacticContext;
     offset: number;
     col: number;
     row: number;
@@ -45,6 +46,7 @@ export interface TokenizeState {
 export function getInitialTokenizeState(): TokenizeState {
     return {
         current: null,
+        context: getInitialSyntacticContext(),
         offset: 0,
         col: 0,
         row: 0,
@@ -75,7 +77,11 @@ export function* tokenize(
                 };
                 continue;
             }
-            const [action, tokenType] = push[state.current.type](character, state.current);
+            const [action, tokenType] = push[state.current.type](
+                character,
+                state.current,
+                state.context,
+            );
             if (tokenType) state.current.type = tokenType;
             if (action === 'continue') {
                 state.current.characters.push(character);
@@ -102,7 +108,11 @@ export function* tokenize(
     if (!eofCharacter) return;
     try {
         if (!state.current) return;
-        const [_, tokenType] = push[state.current.type](eofCharacter, state.current);
+        const [_, tokenType] = push[state.current.type](
+            eofCharacter,
+            state.current,
+            state.context,
+        );
         if (tokenType) state.current.type = tokenType;
         yield state.current;
     } finally {
@@ -111,6 +121,32 @@ export function* tokenize(
         state.col = 0;
         state.row = 0;
     }
+}
+
+export interface SyntacticContext {
+    blocks: SyntacticContextBlock[];
+}
+
+export interface SyntacticContextBlock {
+    keywords: Set<string>;
+}
+
+export function getInitialSyntacticContext(): SyntacticContext {
+    return {
+        blocks: [{
+            keywords: new Set([
+                'assert', 'break', 'continue', 'else', 'false',
+                'fn', 'for', 'if', 'new', 'package',
+                'pub', 'return', 'static', 'switch', 'syntax',
+                'test', 'true', 'type', 'use', 'var',
+                'yield',
+            ]),
+        }],
+    };
+}
+
+export function hasKeyword(context: SyntacticContext, keyword: string): boolean {
+    return !!context.blocks.find(block => block.keywords.has(keyword));
 }
 
 const guessTokenType: { [codeType in CodeCharacterType]: (character: CodeCharacter) => TokenType } = {
@@ -128,7 +164,11 @@ const guessTokenType: { [codeType in CodeCharacterType]: (character: CodeCharact
 };
 
 type PushRules = {
-    [ruleName in TokenType]: (character: CodeCharacter | typeof eof, token: Readonly<Token>) => PushResult;
+    [ruleName in TokenType]: (
+        character: CodeCharacter | typeof eof,
+        token: Readonly<Token>,
+        context: SyntacticContext,
+    ) => PushResult;
 };
 type PushResult =
     | ['emit', TokenType]
@@ -143,15 +183,15 @@ const push: PushRules = {
         if ((token.characters[0].char === '\r') && (character.char === '\n')) return ['continue', null];
         return ['emit', 'newline'];
     },
-    'comment'(character, token) {
+    'comment'(character) {
         if (character.type !== 'vertical_space') return ['continue', null];
         return ['emit', 'comment'];
     },
-    'opening_grouping'(character, token) {
+    'opening_grouping'(character) {
         if (character.type === 'opening_grouping') return ['continue', null];
         return ['emit', 'opening_grouping'];
     },
-    'closing_grouping'(character, token) {
+    'closing_grouping'(character) {
         if (character.type === 'closing_grouping') return ['continue', null];
         return ['emit', 'closing_grouping'];
     },
@@ -168,10 +208,10 @@ const push: PushRules = {
         }
         return ['emit', 'punctuation'];
     },
-    'keyword'(character, token) {
+    'keyword'() {
         throw new Error();
     },
-    'unquoted_name'(character, token) {
+    'unquoted_name'(character, token, context) {
         if (
             (character.type === 'name_start') ||
             (character.type === 'name_continue') ||
@@ -180,21 +220,25 @@ const push: PushRules = {
         if ((token.characters.length === 1) && (token.characters[0].char === '_')) {
             return ['emit', 'placeholder_name'];
         }
+        if (hasKeyword(context, token.characters.map(character => character.char).join(''))) {
+            return ['emit', 'keyword'];
+        }
         return ['emit', 'unquoted_name'];
     },
-    'quoted_name'(character, token) {
+    'quoted_name'(_character, token) {
         if (token.characters.length === 1) return ['continue', null];
         if (token.characters[token.characters.length - 1].char !== '`') return ['continue', null];
         return ['emit', 'quoted_name'];
     },
-    'placeholder_name'(character, token) {
+    'placeholder_name'() {
         throw new Error();
     },
-    'number_literal'(character, token) {
+    'number_literal'(character) {
         // TODO
+        if (character.type === 'decimal_digit') return ['continue', null];
         return ['emit', 'number_literal'];
     },
-    'quoted_literal'(character, token) {
+    'quoted_literal'(_character, token) {
         // TODO
         if (token.characters.length === 1) return ['continue', null];
         const first = token.characters[0].char;
@@ -235,9 +279,33 @@ export function equalsToken(a: Token | null, b: Token | null): boolean {
     if (a.col !== b.col) return false;
     if (a.row !== b.row) return false;
     if (a.characters.length !== b.characters.length) return false;
-    for (let i = 0; i < a.characters.length; ++i) {
-        const [aChar, bChar] = [a.characters[i], b.characters[i]];
-        if (aChar.codePoint !== bChar.codePoint) return false;
-    }
+    return iterEq(a.characters.values(), b.characters.values());
+}
+export function cloneSyntacticContext(context: SyntacticContext): SyntacticContext {
+    return {
+        blocks: context.blocks.map(cloneSyntacticContextBlock),
+    };
+}
+export function equalsSyntacticContext(a: SyntacticContext, b: SyntacticContext): boolean {
+    if (a.blocks.length !== b.blocks.length) return false;
+    return iterEq(a.blocks.values(), b.blocks.values());
+}
+export function cloneSyntacticContextBlock(block: SyntacticContextBlock): SyntacticContextBlock {
+    return {
+        keywords: new Set([...block.keywords]),
+    };
+}
+export function equalsSyntacticContextBlock(a: SyntacticContextBlock, b: SyntacticContextBlock): boolean {
+    if (a.keywords.size !== b.keywords.size) return false;
+    return iterEq(a.keywords.values(), b.keywords.values());
+}
+
+function iterEq<T>(a: Iterator<T>, b: Iterator<T>): boolean {
+    let ar: IteratorResult<T>, br: IteratorResult<T>;
+    do {
+        [ar, br] = [a.next(), b.next()];
+        if (ar.value !== br.value) return false;
+        if (ar.done !== br.done) return false;
+    } while (!ar.done);
     return true;
 }
