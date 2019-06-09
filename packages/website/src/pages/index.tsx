@@ -1,4 +1,5 @@
 import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
+import { navigate } from 'gatsby-link';
 import { css, cx } from 'linaria';
 import { styled } from 'linaria/react';
 import { FixedSizeList as List } from 'react-window';
@@ -16,6 +17,16 @@ export default () => {
     const onChangeHandler = useCallback((code: string) => setCode(code), []);
     const [mode, setMode] = useState<Mode>('characterize');
     const { MonacoEditor, props: monacoEditorProps, selection } = useMonaco();
+    const updateMode = useCallback((mode: Mode) => {
+        setMode(mode);
+        navigate(`${location.pathname}?mode=${mode}`, { replace: true });
+    }, []);
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get('mode') === 'tokenize') {
+            setMode('tokenize');
+        }
+    }, []);
     return <div className={css`
         display: flex;
         flex: 1;
@@ -39,8 +50,8 @@ export default () => {
             border-left: 1px solid ${getColor('foreground')};
         `}>
             <div>
-                <ModeButton mode='characterize' currentMode={mode} setMode={setMode}/>
-                <ModeButton mode='tokenize' currentMode={mode} setMode={setMode}/>
+                <ModeButton mode='characterize' currentMode={mode} setMode={updateMode}/>
+                <ModeButton mode='tokenize' currentMode={mode} setMode={updateMode}/>
             </div>
             <div className={css`flex: 1 0;`}>
                 {
