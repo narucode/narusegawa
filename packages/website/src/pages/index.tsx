@@ -19,7 +19,7 @@ export default () => {
     const { MonacoEditor, props: monacoEditorProps, selection } = useMonaco();
     const updateMode = useCallback((mode: Mode) => {
         setMode(mode);
-        navigate(`${location.pathname}?mode=${mode}`, { replace: true });
+        navigate(`/?mode=${mode}`, { replace: true });
     }, []);
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
