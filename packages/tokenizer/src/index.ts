@@ -18,15 +18,15 @@ export type TokenType =
     | 'whitespace'
     | 'newline'
     | 'comment'
-    | 'openingGrouping'
-    | 'closingGrouping'
+    | 'opening_grouping'
+    | 'closing_grouping'
     | 'punctuation'
     | 'keyword'
-    | 'unquotedName'
-    | 'quotedName'
-    | 'placeholderName'
-    | 'numberLiteral'
-    | 'quotedLiteral'
+    | 'unquoted_name'
+    | 'quoted_name'
+    | 'placeholder_name'
+    | 'number_literal'
+    | 'quoted_literal'
 ;
 
 export const eof = {
@@ -114,17 +114,17 @@ export function* tokenize(
 }
 
 const guessTokenType: { [codeType in CodeCharacterType]: (character: CodeCharacter) => TokenType } = {
-    closingGrouping: () => 'closingGrouping',
-    closingQuote: () => { throw new Error(); },
-    decimalDigit: () => 'numberLiteral',
-    horizontalSpace: () => 'whitespace',
-    nameContinue: () => { throw new Error(); },
-    nameStart: () => 'unquotedName',
-    openingGrouping: () => 'openingGrouping',
-    openingQuote: () => 'quotedLiteral',
-    punctuation: () => 'punctuation',
-    togglingQuote: character => character.char === '`' ? 'quotedName' : 'quotedLiteral',
-    verticalSpace: () => 'newline',
+    'closing_grouping': () => 'closing_grouping',
+    'closing_quote': () => { throw new Error(); },
+    'decimal_digit': () => 'number_literal',
+    'horizontal_space': () => 'whitespace',
+    'name_continue': () => { throw new Error(); },
+    'name_start': () => 'unquoted_name',
+    'opening_grouping': () => 'opening_grouping',
+    'opening_quote': () => 'quoted_literal',
+    'punctuation': () => 'punctuation',
+    'toggling_quote': character => character.char === '`' ? 'quoted_name' : 'quoted_literal',
+    'vertical_space': () => 'newline',
 };
 
 type PushRules = {
@@ -135,27 +135,27 @@ type PushResult =
     | ['continue', TokenType | null]
 ;
 const push: PushRules = {
-    whitespace(character) {
-        if (character.type === 'horizontalSpace') return ['continue', null];
+    'whitespace'(character) {
+        if (character.type === 'horizontal_space') return ['continue', null];
         return ['emit', 'whitespace'];
     },
-    newline(character, token) {
+    'newline'(character, token) {
         if ((token.characters[0].char === '\r') && (character.char === '\n')) return ['continue', null];
         return ['emit', 'newline'];
     },
-    comment(character, token) {
-        if (character.type !== 'verticalSpace') return ['continue', null];
+    'comment'(character, token) {
+        if (character.type !== 'vertical_space') return ['continue', null];
         return ['emit', 'comment'];
     },
-    openingGrouping(character, token) {
-        if (character.type === 'openingGrouping') return ['continue', null];
-        return ['emit', 'openingGrouping'];
+    'opening_grouping'(character, token) {
+        if (character.type === 'opening_grouping') return ['continue', null];
+        return ['emit', 'opening_grouping'];
     },
-    closingGrouping(character, token) {
-        if (character.type === 'closingGrouping') return ['continue', null];
-        return ['emit', 'closingGrouping'];
+    'closing_grouping'(character, token) {
+        if (character.type === 'closing_grouping') return ['continue', null];
+        return ['emit', 'closing_grouping'];
     },
-    punctuation(character, token) {
+    'punctuation'(character, token) {
         if (character.type === 'punctuation') {
             if (
                 (token.characters.length === 1) &&
@@ -168,39 +168,39 @@ const push: PushRules = {
         }
         return ['emit', 'punctuation'];
     },
-    keyword(character, token) {
+    'keyword'(character, token) {
         throw new Error();
     },
-    unquotedName(character, token) {
+    'unquoted_name'(character, token) {
         if (
-            (character.type === 'nameStart') ||
-            (character.type === 'nameContinue') ||
-            (character.type === 'decimalDigit')
+            (character.type === 'name_start') ||
+            (character.type === 'name_continue') ||
+            (character.type === 'decimal_digit')
         ) return ['continue', null];
         if ((token.characters.length === 1) && (token.characters[0].char === '_')) {
-            return ['emit', 'placeholderName'];
+            return ['emit', 'placeholder_name'];
         }
-        return ['emit', 'unquotedName'];
+        return ['emit', 'unquoted_name'];
     },
-    quotedName(character, token) {
+    'quoted_name'(character, token) {
         if (token.characters.length === 1) return ['continue', null];
         if (token.characters[token.characters.length - 1].char !== '`') return ['continue', null];
-        return ['emit', 'quotedName'];
+        return ['emit', 'quoted_name'];
     },
-    placeholderName(character, token) {
+    'placeholder_name'(character, token) {
         throw new Error();
     },
-    numberLiteral(character, token) {
+    'number_literal'(character, token) {
         // TODO
-        return ['emit', 'numberLiteral'];
+        return ['emit', 'number_literal'];
     },
-    quotedLiteral(character, token) {
+    'quoted_literal'(character, token) {
         // TODO
         if (token.characters.length === 1) return ['continue', null];
         const first = token.characters[0].char;
         const last = token.characters[token.characters.length - 1].char;
         if (first !== last) return ['continue', null];
-        return ['emit', 'quotedLiteral'];
+        return ['emit', 'quoted_literal'];
     },
 }
 

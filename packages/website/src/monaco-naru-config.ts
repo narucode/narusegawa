@@ -70,16 +70,16 @@ function getScopeFromToken(token: Token): string {
 }
 
 const scopeMap: { [tokenType in TokenType]: string } = {
-    whitespace: 'white',
-    newline: 'white',
-    comment: 'comment.line.double-dash',
-    openingGrouping: 'punctuation.section.parens.begin',
-    closingGrouping: 'punctuation.section.parens.end',
-    punctuation: 'keyword.operator',
-    keyword: 'keyword',
-    unquotedName: '',
-    quotedName: 'variable.other',
-    placeholderName: 'variable.other',
-    numberLiteral: 'constant.numeric',
-    quotedLiteral: 'string.quoted',
+    'whitespace': 'white',
+    'newline': 'white',
+    'comment': 'comment.line.double-dash',
+    'opening_grouping': 'punctuation.section.parens.begin',
+    'closing_grouping': 'punctuation.section.parens.end',
+    'punctuation': 'keyword.operator',
+    'keyword': 'keyword',
+    'unquoted_name': '',
+    'quoted_name': 'variable.other',
+    'placeholder_name': 'variable.other',
+    'number_literal': 'constant.numeric',
+    'quoted_literal': 'string.quoted',
 };
