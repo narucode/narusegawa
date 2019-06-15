@@ -5,11 +5,11 @@ export function* characterize(text: string): IterableIterator<CodeCharacter> {
 }
 
 export function character(char: string): CodeCharacter {
-    return {
+    return Object.freeze({
         type: characterType(char),
         char,
         codePoint: char.codePointAt(0)!,
-    };
+    });
 }
 
 export function characterType(char: string): CodeCharacter['type'] {

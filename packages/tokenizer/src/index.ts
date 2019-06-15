@@ -38,6 +38,7 @@ export const eof = {
 export interface TokenizeState {
     current: Token | null;
     context: SyntacticContext;
+    lastCharacter: CodeCharacter | null;
     offset: number;
     col: number;
     row: number;
@@ -47,6 +48,7 @@ export function getInitialTokenizeState(): TokenizeState {
     return {
         current: null,
         context: getInitialSyntacticContext(),
+        lastCharacter: null,
         offset: 0,
         col: 0,
         row: 0,
