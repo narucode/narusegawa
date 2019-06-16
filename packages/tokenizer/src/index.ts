@@ -90,7 +90,6 @@ export function* tokenize(
                 continue;
             }
             yield state.current;
-            const isNewline = state.current.type === 'newline';
             state.current = {
                 type: guessTokenType[character.type](character),
                 characters: [character],
@@ -98,13 +97,19 @@ export function* tokenize(
                 col: state.col,
                 row: state.row,
             };
-            if (isNewline) {
-                state.col = -1;
-                ++state.row;
-            }
         } finally {
             ++state.offset;
             ++state.col;
+            row: if (character.type === 'vertical_space') {
+                state.col = 0;
+                if (
+                    (character.char === '\n') &&
+                    state.lastCharacter &&
+                    (state.lastCharacter.char === '\r')
+                ) break row;
+                ++state.row;
+            }
+            state.lastCharacter = character;
         }
     }
     if (!eofCharacter) return;
