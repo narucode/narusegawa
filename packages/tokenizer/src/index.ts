@@ -291,6 +291,8 @@ export function equalsTokenizeState(a: TokenizeState, b: TokenizeState): boolean
         (a.offset === b.offset) &&
         (a.col === b.col) &&
         (a.row === b.row) &&
+        (a.offset === b.phase) &&
+        (a.lastCharacter === b.lastCharacter) &&
         equalsToken(a.current, b.current)
     );
 }
