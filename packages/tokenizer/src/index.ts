@@ -1,4 +1,4 @@
-import { CodeCharacter, CodeCharacterType } from '@narucode/characterizer';
+import { CodeCharacter, CodeCharacterType, character } from '@narucode/characterizer';
 
 export interface Token {
     type: TokenType;
@@ -15,6 +15,7 @@ export interface Token {
 }
 
 export type TokenType =
+    | 'unknown'
     | 'whitespace'
     | 'newline'
     | 'comment'
@@ -39,6 +40,7 @@ export interface TokenizeState {
     current: Token | null;
     context: SyntacticContext;
     lastCharacter: CodeCharacter | null;
+    phase: Phase;
     offset: number;
     col: number;
     row: number;
@@ -49,6 +51,7 @@ export function getInitialTokenizeState(): TokenizeState {
         current: null,
         context: getInitialSyntacticContext(),
         lastCharacter: null,
+        phase: Phase.none,
         offset: 0,
         col: 0,
         row: 0,
@@ -67,36 +70,38 @@ export function* tokenize(
     state: TokenizeState = getInitialTokenizeState(),
     eofCharacter: CodeCharacter | typeof eof | null = eof,
 ): IterableIterator<Token> {
+    const startToken = (character: CodeCharacter) => {
+        state.current = {
+            type: 'unknown',
+            characters: [character],
+            offset: state.offset,
+            col: state.col,
+            row: state.row,
+        };
+        state.phase = initialPhaseMap[character.type](character);
+    };
     for (const character of characters) {
         try {
             if (!state.current) {
-                state.current = {
-                    type: guessTokenType[character.type](character),
-                    characters: [character],
-                    offset: state.offset,
-                    col: state.col,
-                    row: state.row,
-                };
+                startToken(character);
                 continue;
             }
-            const [action, tokenType] = push[state.current.type](
+            const pushResult = push[state.phase](
                 character,
                 state.current,
                 state.context,
             );
-            if (tokenType) state.current.type = tokenType;
-            if (action === 'continue') {
+            if (pushResult[0] === 'continue') {
+                const nextPhase = pushResult[1];
+                if (nextPhase) state.phase = nextPhase;
                 state.current.characters.push(character);
                 continue;
+            } else if (pushResult[0] === 'emit') {
+                const tokenType = pushResult[1];
+                state.current.type = tokenType;
+                yield state.current;
+                startToken(character);
             }
-            yield state.current;
-            state.current = {
-                type: guessTokenType[character.type](character),
-                characters: [character],
-                offset: state.offset,
-                col: state.col,
-                row: state.row,
-            };
         } finally {
             ++state.offset;
             ++state.col;
@@ -115,15 +120,19 @@ export function* tokenize(
     if (!eofCharacter) return;
     try {
         if (!state.current) return;
-        const [_, tokenType] = push[state.current.type](
+        const pushResult = push[state.phase](
             eofCharacter,
             state.current,
             state.context,
         );
-        if (tokenType) state.current.type = tokenType;
+        if (pushResult[0] === 'emit') {
+            const tokenType = pushResult[1];
+            state.current.type = tokenType;
+        }
         yield state.current;
     } finally {
         state.current = null;
+        state.phase = Phase.none;
         state.offset = 0;
         state.col = 0;
         state.row = 0;
@@ -156,22 +165,37 @@ export function hasKeyword(context: SyntacticContext, keyword: string): boolean 
     return !!context.blocks.find(block => block.keywords.has(keyword));
 }
 
-const guessTokenType: { [codeType in CodeCharacterType]: (character: CodeCharacter) => TokenType } = {
-    'closing_grouping': () => 'closing_grouping',
+const initialPhaseMap: { [codeType in CodeCharacterType]: (character: CodeCharacter) => Phase } = {
+    'closing_grouping': () => Phase.closing_grouping,
     'closing_quote': () => { throw new Error(); },
-    'decimal_digit': () => 'number_literal',
-    'horizontal_space': () => 'whitespace',
+    'decimal_digit': () => Phase.number_literal,
+    'horizontal_space': () => Phase.whitespace,
     'name_continue': () => { throw new Error(); },
-    'name_start': () => 'unquoted_name',
-    'opening_grouping': () => 'opening_grouping',
-    'opening_quote': () => 'quoted_literal',
-    'punctuation': () => 'punctuation',
-    'toggling_quote': character => character.char === '`' ? 'quoted_name' : 'quoted_literal',
-    'vertical_space': () => 'newline',
+    'name_start': () => Phase.unquoted_name,
+    'opening_grouping': () => Phase.opening_grouping,
+    'opening_quote': () => Phase.quoted_literal,
+    'punctuation': () => Phase.punctuation,
+    'toggling_quote': character => character.char === '`' ? Phase.quoted_name : Phase.quoted_literal,
+    'vertical_space': () => Phase.newline,
 };
 
+enum Phase {
+    none,
+    whitespace,
+    newline,
+    comment,
+    opening_grouping,
+    closing_grouping,
+    punctuation,
+    keyword,
+    unquoted_name,
+    quoted_name,
+    placeholder_name,
+    number_literal,
+    quoted_literal,
+}
 type PushRules = {
-    [ruleName in TokenType]: (
+    [phase in Phase]: (
         character: CodeCharacter | typeof eof,
         token: Readonly<Token>,
         context: SyntacticContext,
@@ -179,46 +203,47 @@ type PushRules = {
 };
 type PushResult =
     | ['emit', TokenType]
-    | ['continue', TokenType | null]
+    | ['continue', Phase | null]
 ;
 const push: PushRules = {
-    'whitespace'(character) {
+    [Phase.none]() { throw new Error(); },
+    [Phase.whitespace](character) {
         if (character.type === 'horizontal_space') return ['continue', null];
         return ['emit', 'whitespace'];
     },
-    'newline'(character, token) {
+    [Phase.newline](character, token) {
         if ((token.characters[0].char === '\r') && (character.char === '\n')) return ['continue', null];
         return ['emit', 'newline'];
     },
-    'comment'(character) {
+    [Phase.comment](character) {
         if (character.type !== 'vertical_space') return ['continue', null];
         return ['emit', 'comment'];
     },
-    'opening_grouping'(character) {
+    [Phase.opening_grouping](character) {
         if (character.type === 'opening_grouping') return ['continue', null];
         return ['emit', 'opening_grouping'];
     },
-    'closing_grouping'(character) {
+    [Phase.closing_grouping](character) {
         if (character.type === 'closing_grouping') return ['continue', null];
         return ['emit', 'closing_grouping'];
     },
-    'punctuation'(character, token) {
+    [Phase.punctuation](character, token) {
         if (character.type === 'punctuation') {
             if (
                 (token.characters.length === 1) &&
                 (token.characters[0].char === '-') &&
                 (character.char === '-')
             ) {
-                return ['continue', 'comment'];
+                return ['continue', Phase.comment];
             }
             return ['continue', null];
         }
         return ['emit', 'punctuation'];
     },
-    'keyword'() {
+    [Phase.keyword]() {
         throw new Error();
     },
-    'unquoted_name'(character, token, context) {
+    [Phase.unquoted_name](character, token, context) {
         if (
             (character.type === 'name_start') ||
             (character.type === 'name_continue') ||
@@ -232,20 +257,20 @@ const push: PushRules = {
         }
         return ['emit', 'unquoted_name'];
     },
-    'quoted_name'(_character, token) {
+    [Phase.quoted_name](_character, token) {
         if (token.characters.length === 1) return ['continue', null];
         if (token.characters[token.characters.length - 1].char !== '`') return ['continue', null];
         return ['emit', 'quoted_name'];
     },
-    'placeholder_name'() {
+    [Phase.placeholder_name]() {
         throw new Error();
     },
-    'number_literal'(character) {
+    [Phase.number_literal](character) {
         // TODO
         if (character.type === 'decimal_digit') return ['continue', null];
         return ['emit', 'number_literal'];
     },
-    'quoted_literal'(_character, token) {
+    [Phase.quoted_literal](_character, token) {
         // TODO
         if (token.characters.length === 1) return ['continue', null];
         const first = token.characters[0].char;

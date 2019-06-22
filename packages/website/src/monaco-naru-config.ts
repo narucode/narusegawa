@@ -70,6 +70,7 @@ function getScopeFromToken(token: Token): string {
 }
 
 const scopeMap: { [tokenType in TokenType]: string } = {
+    'unknown': 'invalid',
     'whitespace': 'white',
     'newline': 'white',
     'comment': 'comment.line.double-dash',
