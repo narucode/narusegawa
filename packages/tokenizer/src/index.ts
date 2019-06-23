@@ -22,11 +22,10 @@ export type TokenType =
     | 'quoted_literal'
 ;
 
-export const eof = {
-    type: '<EOF>',
+export const eof: CodeCharacter = {
+    type: 'unclassified',
     char: '',
-    codePoint: -1,
-} as const;
+};
 
 export interface TokenizeState {
     offset: number;
@@ -56,7 +55,7 @@ export function getInitialTokenizeState(): TokenizeState {
 export function* tokenize(
     characters: Iterable<CodeCharacter>,
     state: TokenizeState = getInitialTokenizeState(),
-    eofCharacter: CodeCharacter | typeof eof | null = eof,
+    eofCharacter: CodeCharacter | null = eof,
 ): IterableIterator<Token> {
     const startToken = (character: CodeCharacter) => {
         state.startOffset = state.offset;
@@ -104,7 +103,6 @@ export function* tokenize(
         state.context,
     );
     yield endToken(pushResult);
-    state.offset += eofCharacter.char.length;
 }
 
 export interface SyntacticContext {
