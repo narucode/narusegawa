@@ -1,13 +1,12 @@
 import {
     characterize,
-    character,
 } from '@narucode/characterizer';
 import {
     tokenize,
     getInitialTokenizeState,
     cloneTokenizeState,
     equalsTokenizeState,
-    Token,
+    guessTokenTypeFromPhase,
     TokenType,
     TokenizeState,
 } from '@narucode/tokenizer';
@@ -36,15 +35,22 @@ export const languageConfiguration: LanguageConfiguration = {
 
 class MonacoTokenizerState implements IState {
     constructor(
+        public offset: number = 0,
         public tokenizeState: TokenizeState = getInitialTokenizeState(),
     ) {}
     clone() {
         return new MonacoTokenizerState(
-            cloneTokenizeState(this.tokenizeState),
+            this.offset,
+            cloneTokenizeState(
+                this.tokenizeState,
+            ),
         );
     }
     equals(another: MonacoTokenizerState) {
-        return equalsTokenizeState(this.tokenizeState, another.tokenizeState);
+        return (
+            (this.offset === another.offset) &&
+            equalsTokenizeState(this.tokenizeState, another.tokenizeState)
+        );
     }
 }
 export const tokensProvider: TokensProvider = {
@@ -53,21 +59,25 @@ export const tokensProvider: TokensProvider = {
         const tokens = tokenize(
             characterize(line),
             state.tokenizeState,
-            character('\n'),
+            null,
         );
-        return {
+        const result = {
             tokens: Array.from(tokens).map(token => ({
-                startIndex: token.col,
-                scopes: getScopeFromToken(token),
+                startIndex: token.offset - state.offset,
+                scopes: scopeMap[token.type],
             })),
             endState: state,
         };
+        if (state.tokenizeState.startOffset) {
+            result.tokens.push({
+                startIndex: state.tokenizeState.startOffset - state.offset,
+                scopes: scopeMap[guessTokenTypeFromPhase(state.tokenizeState.phase)],
+            });
+        }
+        state.offset += line.length;
+        return result;
     },
 };
-
-function getScopeFromToken(token: Token): string {
-    return scopeMap[token.type];
-}
 
 const scopeMap: { [tokenType in TokenType]: string } = {
     'unknown': 'invalid',

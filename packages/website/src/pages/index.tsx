@@ -4,8 +4,9 @@ import { css, cx } from 'linaria';
 import { styled } from 'linaria/react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { characterize } from '@narucode/characterizer';
+import { characterize, CodeCharacter } from '@narucode/characterizer';
 import { tokenize } from '@narucode/tokenizer';
+import { text2narufile, getText } from '@narucode/file';
 
 import { useMonaco, isPointOnSelection, isRangeOnSelection, Selection } from '../monaco';
 import { getColor } from '../theme';
@@ -92,12 +93,21 @@ const ModeButton: React.FC<ModeButtonProps> = memo(({ mode, currentMode, setMode
     )}>{mode}</button>;
 });
 
+function* calcOffsets(characters: Iterable<CodeCharacter>) {
+    let offset = 0;
+    for (const character of characters) {
+        yield offset;
+        offset += character.char.length;
+    }
+}
+
 interface CharacterizerViewProps {
     code: string;
     selection: Selection | null;
 }
 const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }) => {
     const characters = Array.from(characterize(code));
+    const offsets = Array.from(calcOffsets(characters));
     const listRef = useRef(null as any as List);
     for (const pos of ['start', 'end'] as const) {
         useEffect(() => {
@@ -114,7 +124,7 @@ const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }
                 display: flex;
                 align-items: center;
             `,
-            selection && isPointOnSelection(index, selection) && css`
+            selection && isPointOnSelection(offsets[index], selection) && css`
                 color: ${getColor('foreground', 2)};
                 background-color: ${getColor('background', 2)};
             `,
@@ -125,7 +135,7 @@ const CharacterizerView: React.FC<CharacterizerViewProps> = ({ code, selection }
             `}>{codeCharacter.char}</div>
             <div className={css`
                 width: 100px;
-            `}>U+{codeCharacter.codePoint.toString(16).toUpperCase().padStart(4, '0')}</div>
+            `}>U+{codeCharacter.char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}</div>
             <div className={css``}>{codeCharacter.type}</div>
         </div>;
     }), [characters]);
@@ -148,6 +158,7 @@ interface TokenizerViewProps {
 const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
     const tokens = Array.from(tokenize(characterize(code)));
     const listRef = useRef(null as any as List);
+    const file = text2narufile(code);
     for (const pos of ['start', 'end'] as const) {
         useEffect(() => {
             if (!selection) return;
@@ -155,7 +166,7 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
             const list = listRef.current;
             const offset = selection[pos].offset;
             const scrollIndex = tokens.findIndex(
-                token => (offset < token.offset) || (offset < (token.offset + token.characters.length)),
+                token => (offset < token.offset) || (offset < (token.offset + token.length)),
             );
             ~scrollIndex && list.scrollToItem(scrollIndex);
         }, [selection && selection[pos].offset]);
@@ -164,7 +175,7 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
         const token = tokens[index];
         const isOnSelection = selection && isRangeOnSelection(
             token.offset,
-            token.offset + token.characters.length,
+            token.offset + token.length,
             selection,
         );
         return <div style={style} className={cx(
@@ -183,7 +194,7 @@ const TokenizerView: React.FC<TokenizerViewProps> = ({ code, selection }) => {
                 overflow: hidden;
                 white-space: nowrap;
                 text-overflow: ellipsis;
-            `}>{token.characters.map(char => char.char).join('')}</div>
+            `}>{getText(file, token)}</div>
             <div className={css``}>{token.type}</div>
         </div>;
     }), [tokens]);

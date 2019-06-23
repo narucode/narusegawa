@@ -18,6 +18,11 @@ export function* iterLines(narufile: NaruFile) {
     yield narufile.text.substr(lastLineOffset);
 }
 
+export interface Range {
+    offset: number;
+    length: number;
+}
+
 export interface Position {
     /**
      * zero based column offset
@@ -27,6 +32,11 @@ export interface Position {
      * zero based row offset
      */
     row: number;
+}
+
+export function getText(file: NaruFile, range?: Range): string {
+    if (!range) return file.text;
+    return file.text.substr(range.offset, range.length);
 }
 
 export function getPosition(file: NaruFile, offset: number): Position {

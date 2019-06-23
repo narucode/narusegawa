@@ -8,7 +8,6 @@ export function character(char: string): CodeCharacter {
     return Object.freeze({
         type: characterType(char),
         char,
-        codePoint: char.codePointAt(0)!,
     });
 }
 
@@ -24,13 +23,12 @@ export function characterType(char: string): CodeCharacter['type'] {
     if (data.punctuationRegex.test(char)) return 'punctuation';
     if (data.togglingQuoteRegex.test(char)) return 'toggling_quote';
     if (data.verticalSpaceRegex.test(char)) return 'vertical_space';
-    throw new Error(`unknown character: ${char}`);
+    return 'unclassified';
 }
 
 export interface CodeCharacter {
     type: CodeCharacterType;
     char: string;
-    codePoint: number;
 }
 
 export type CodeCharacterType =
@@ -45,4 +43,5 @@ export type CodeCharacterType =
     | 'punctuation'
     | 'toggling_quote'
     | 'vertical_space'
+    | 'unclassified'
 ;

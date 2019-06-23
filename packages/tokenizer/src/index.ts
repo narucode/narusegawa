@@ -2,16 +2,8 @@ import { CodeCharacter, CodeCharacterType, character } from '@narucode/character
 
 export interface Token {
     type: TokenType;
-    characters: Readonly<CodeCharacter>[];
     offset: number;
-    /**
-     * zero based column offset
-     */
-    col: number;
-    /**
-     * zero based row offset
-     */
-    row: number;
+    length: number;
 }
 
 export type TokenType =
@@ -37,24 +29,20 @@ export const eof = {
 } as const;
 
 export interface TokenizeState {
-    current: Token | null;
-    context: SyntacticContext;
-    lastCharacter: CodeCharacter | null;
-    phase: Phase;
     offset: number;
-    col: number;
-    row: number;
+    startOffset: number | null;
+    phase: Phase;
+    context: SyntacticContext;
+    characters: CodeCharacter[];
 }
 
 export function getInitialTokenizeState(): TokenizeState {
     return {
-        current: null,
-        context: getInitialSyntacticContext(),
-        lastCharacter: null,
-        phase: Phase.none,
         offset: 0,
-        col: 0,
-        row: 0,
+        startOffset: null,
+        phase: Phase.none,
+        context: getInitialSyntacticContext(),
+        characters: [],
     };
 }
 
@@ -71,72 +59,52 @@ export function* tokenize(
     eofCharacter: CodeCharacter | typeof eof | null = eof,
 ): IterableIterator<Token> {
     const startToken = (character: CodeCharacter) => {
-        state.current = {
-            type: 'unknown',
-            characters: [character],
-            offset: state.offset,
-            col: state.col,
-            row: state.row,
-        };
+        state.startOffset = state.offset;
+        state.characters = [character];
         state.phase = initialPhaseMap[character.type](character);
+    };
+    const endToken = (pushResult: PushResult) => {
+        if (state.startOffset == null) throw new Error();
+        const type = (pushResult[0] === 'emit') ? pushResult[1] : 'unknown';
+        const offset = state.startOffset;
+        const length = state.offset - offset;
+        state.startOffset = null;
+        state.phase = Phase.none;
+        return { type, offset, length };
     };
     for (const character of characters) {
         try {
-            if (!state.current) {
+            if (state.startOffset == null) {
                 startToken(character);
                 continue;
             }
             const pushResult = push[state.phase](
                 character,
-                state.current,
+                state.characters,
                 state.context,
             );
             if (pushResult[0] === 'continue') {
                 const nextPhase = pushResult[1];
                 if (nextPhase) state.phase = nextPhase;
-                state.current.characters.push(character);
+                state.characters.push(character);
                 continue;
             } else if (pushResult[0] === 'emit') {
-                const tokenType = pushResult[1];
-                state.current.type = tokenType;
-                yield state.current;
+                yield endToken(pushResult);
                 startToken(character);
             }
         } finally {
-            ++state.offset;
-            ++state.col;
-            row: if (character.type === 'vertical_space') {
-                state.col = 0;
-                if (
-                    (character.char === '\n') &&
-                    state.lastCharacter &&
-                    (state.lastCharacter.char === '\r')
-                ) break row;
-                ++state.row;
-            }
-            state.lastCharacter = character;
+            state.offset += character.char.length;
         }
     }
     if (!eofCharacter) return;
-    try {
-        if (!state.current) return;
-        const pushResult = push[state.phase](
-            eofCharacter,
-            state.current,
-            state.context,
-        );
-        if (pushResult[0] === 'emit') {
-            const tokenType = pushResult[1];
-            state.current.type = tokenType;
-        }
-        yield state.current;
-    } finally {
-        state.current = null;
-        state.phase = Phase.none;
-        state.offset = 0;
-        state.col = 0;
-        state.row = 0;
-    }
+    if (state.startOffset == null) return;
+    const pushResult = push[state.phase](
+        eofCharacter,
+        state.characters,
+        state.context,
+    );
+    yield endToken(pushResult);
+    state.offset += eofCharacter.char.length;
 }
 
 export interface SyntacticContext {
@@ -177,7 +145,26 @@ const initialPhaseMap: { [codeType in CodeCharacterType]: (character: CodeCharac
     'punctuation': () => Phase.punctuation,
     'toggling_quote': character => character.char === '`' ? Phase.quoted_name : Phase.quoted_literal,
     'vertical_space': () => Phase.newline,
+    'unclassified': () => { throw new Error(); },
 };
+
+export function guessTokenTypeFromPhase(phase: Phase): TokenType {
+    switch (phase) {
+        default: return 'unknown';
+        case Phase.whitespace: return 'whitespace';
+        case Phase.newline: return 'newline';
+        case Phase.comment: return 'comment';
+        case Phase.opening_grouping: return 'opening_grouping';
+        case Phase.closing_grouping: return 'closing_grouping';
+        case Phase.punctuation: return 'punctuation';
+        case Phase.keyword: return 'keyword';
+        case Phase.unquoted_name: return 'unquoted_name';
+        case Phase.quoted_name: return 'quoted_name';
+        case Phase.placeholder_name: return 'placeholder_name';
+        case Phase.number_literal: return 'number_literal';
+        case Phase.quoted_literal: return 'quoted_literal';
+    }
+}
 
 enum Phase {
     none,
@@ -197,7 +184,7 @@ enum Phase {
 type PushRules = {
     [phase in Phase]: (
         character: CodeCharacter | typeof eof,
-        token: Readonly<Token>,
+        characters: Readonly<CodeCharacter[]>,
         context: SyntacticContext,
     ) => PushResult;
 };
@@ -211,8 +198,8 @@ const push: PushRules = {
         if (character.type === 'horizontal_space') return ['continue', null];
         return ['emit', 'whitespace'];
     },
-    [Phase.newline](character, token) {
-        if ((token.characters[0].char === '\r') && (character.char === '\n')) return ['continue', null];
+    [Phase.newline](character, characters) {
+        if ((characters[0].char === '\r') && (character.char === '\n')) return ['continue', null];
         return ['emit', 'newline'];
     },
     [Phase.comment](character) {
@@ -227,11 +214,11 @@ const push: PushRules = {
         if (character.type === 'closing_grouping') return ['continue', null];
         return ['emit', 'closing_grouping'];
     },
-    [Phase.punctuation](character, token) {
+    [Phase.punctuation](character, characters) {
         if (character.type === 'punctuation') {
             if (
-                (token.characters.length === 1) &&
-                (token.characters[0].char === '-') &&
+                (characters.length === 1) &&
+                (characters[0].char === '-') &&
                 (character.char === '-')
             ) {
                 return ['continue', Phase.comment];
@@ -243,23 +230,23 @@ const push: PushRules = {
     [Phase.keyword]() {
         throw new Error();
     },
-    [Phase.unquoted_name](character, token, context) {
+    [Phase.unquoted_name](character, characters, context) {
         if (
             (character.type === 'name_start') ||
             (character.type === 'name_continue') ||
             (character.type === 'decimal_digit')
         ) return ['continue', null];
-        if ((token.characters.length === 1) && (token.characters[0].char === '_')) {
+        if ((characters.length === 1) && (characters[0].char === '_')) {
             return ['emit', 'placeholder_name'];
         }
-        if (hasKeyword(context, token.characters.map(character => character.char).join(''))) {
+        if (hasKeyword(context, characters.map(character => character.char).join(''))) {
             return ['emit', 'keyword'];
         }
         return ['emit', 'unquoted_name'];
     },
-    [Phase.quoted_name](_character, token) {
-        if (token.characters.length === 1) return ['continue', null];
-        if (token.characters[token.characters.length - 1].char !== '`') return ['continue', null];
+    [Phase.quoted_name](_character, characters) {
+        if (characters.length === 1) return ['continue', null];
+        if (characters[characters.length - 1].char !== '`') return ['continue', null];
         return ['emit', 'quoted_name'];
     },
     [Phase.placeholder_name]() {
@@ -270,11 +257,11 @@ const push: PushRules = {
         if (character.type === 'decimal_digit') return ['continue', null];
         return ['emit', 'number_literal'];
     },
-    [Phase.quoted_literal](_character, token) {
+    [Phase.quoted_literal](_character, characters) {
         // TODO
-        if (token.characters.length === 1) return ['continue', null];
-        const first = token.characters[0].char;
-        const last = token.characters[token.characters.length - 1].char;
+        if (characters.length === 1) return ['continue', null];
+        const first = characters[0].char;
+        const last = characters[characters.length - 1].char;
         if (first !== last) return ['continue', null];
         return ['emit', 'quoted_literal'];
     },
@@ -283,26 +270,23 @@ const push: PushRules = {
 export function cloneTokenizeState(tokenizeState: TokenizeState): TokenizeState {
     return {
         ...tokenizeState,
-        current: tokenizeState.current && cloneToken(tokenizeState.current),
+        characters: [...tokenizeState.characters],
+        context: cloneSyntacticContext(tokenizeState.context),
     };
 }
 export function equalsTokenizeState(a: TokenizeState, b: TokenizeState): boolean {
     return (
+        (a.phase === b.phase) &&
         (a.offset === b.offset) &&
-        (a.col === b.col) &&
-        (a.row === b.row) &&
-        (a.offset === b.phase) &&
-        (a.lastCharacter === b.lastCharacter) &&
-        equalsToken(a.current, b.current)
+        (a.startOffset === b.startOffset) &&
+        iterEq(a.characters.values(), b.characters.values())
     );
 }
 export function cloneToken(token: Token): Token {
     return {
         type: token.type,
-        characters: [...token.characters],
         offset: token.offset,
-        col: token.col,
-        row: token.row,
+        length: token.length,
     };
 }
 export function equalsToken(a: Token | null, b: Token | null): boolean {
@@ -310,10 +294,8 @@ export function equalsToken(a: Token | null, b: Token | null): boolean {
     if (!b) return !a;
     if (a.type !== b.type) return false;
     if (a.offset !== b.offset) return false;
-    if (a.col !== b.col) return false;
-    if (a.row !== b.row) return false;
-    if (a.characters.length !== b.characters.length) return false;
-    return iterEq(a.characters.values(), b.characters.values());
+    if (a.length !== b.length) return false;
+    return true;
 }
 export function cloneSyntacticContext(context: SyntacticContext): SyntacticContext {
     return {
