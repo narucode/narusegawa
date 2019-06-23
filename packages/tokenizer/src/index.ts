@@ -69,20 +69,19 @@ export function* tokenize(
         return { type, offset, length };
     };
     for (const character of characters) {
-        try {
-            let pushResult: PushResult;
-            do {
-                pushResult = pushTable[state.phase](character, state);
-                if (pushResult[2]) state.characters.push(character);
-                if (pushResult[0] === 'continue') {
-                    state.phase = pushResult[1];
-                } else if (pushResult[0] === 'emit') {
-                    yield endToken(pushResult);
-                }
-            } while (!pushResult[2]);
-        } finally {
-            state.offset += character.char.length;
-        }
+        let pushResult: PushResult;
+        do {
+            pushResult = pushTable[state.phase](character, state);
+            if (pushResult[2]) {
+                state.characters.push(character);
+                state.offset += character.char.length;
+            }
+            if (pushResult[0] === 'continue') {
+                state.phase = pushResult[1];
+            } else if (pushResult[0] === 'emit') {
+                yield endToken(pushResult);
+            }
+        } while (!pushResult[2]);
     }
     if (!eofCharacter) return;
     if (state.startOffset == null) return;
@@ -120,14 +119,13 @@ export function guessTokenTypeFromPhase(phase: Phase): TokenType {
         default: return 'unknown';
         case Phase.whitespace: return 'whitespace';
         case Phase.newline: return 'newline';
+        case Phase.newlineCr: return 'newline';
         case Phase.comment: return 'comment';
         case Phase.opening_grouping: return 'opening_grouping';
         case Phase.closing_grouping: return 'closing_grouping';
         case Phase.punctuation: return 'punctuation';
-        case Phase.keyword: return 'keyword';
         case Phase.unquoted_name: return 'unquoted_name';
         case Phase.quoted_name: return 'quoted_name';
-        case Phase.placeholder_name: return 'placeholder_name';
         case Phase.number_literal: return 'number_literal';
         case Phase.quoted_literal: return 'quoted_literal';
     }
@@ -142,10 +140,8 @@ enum Phase {
     opening_grouping,
     closing_grouping,
     punctuation,
-    keyword,
     unquoted_name,
     quoted_name,
-    placeholder_name,
     number_literal,
     quoted_literal,
 }
@@ -163,17 +159,17 @@ const pushTable: PushRules = {
     [Phase.initial](character) {
         switch (character.type) {
             case 'closing_grouping': return ['continue', Phase.closing_grouping, false];
-            case 'closing_quote': throw new Error();
+            case 'closing_quote': return ['emit', 'unknown', true];
             case 'decimal_digit': return ['continue', Phase.number_literal, false];
             case 'horizontal_space': return ['continue', Phase.whitespace, false];
-            case 'name_continue': throw new Error();
+            case 'name_continue': return ['emit', 'unknown', true];
             case 'name_start': return ['continue', Phase.unquoted_name, false];
             case 'opening_grouping': return ['continue', Phase.opening_grouping, false];
             case 'opening_quote': return ['continue', Phase.quoted_literal, false];
             case 'punctuation': return ['continue', Phase.punctuation, false];
             case 'toggling_quote': return ['continue', character.char === '`' ? Phase.quoted_name : Phase.quoted_literal, false];
             case 'vertical_space': return ['continue', Phase.newline, false];
-            case 'unclassified': throw new Error();
+            case 'unclassified': return ['emit', 'unknown', true];
         }
     },
     [Phase.whitespace](character) {
@@ -215,9 +211,6 @@ const pushTable: PushRules = {
         }
         return ['emit', 'punctuation', false];
     },
-    [Phase.keyword]() {
-        throw new Error();
-    },
     [Phase.unquoted_name](character, { characters, context }) {
         if (
             (character.type === 'name_start') ||
@@ -236,9 +229,6 @@ const pushTable: PushRules = {
         if (characters.length === 1) return ['continue', Phase.quoted_name, true];
         if (characters[characters.length - 1].char !== '`') return ['continue', Phase.quoted_name, true];
         return ['emit', 'quoted_name', false];
-    },
-    [Phase.placeholder_name]() {
-        throw new Error();
     },
     [Phase.number_literal](character) {
         // TODO
