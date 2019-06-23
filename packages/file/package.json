@@ -1,0 +1,30 @@
+{
+  "name": "@narucode/file",
+  "version": "0.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "test": "sucrase-node src/test/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lindenbark/narusegawa.git"
+  },
+  "keywords": [
+    "naru"
+  ],
+  "author": "Team Lindenbark",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lindenbark/narusegawa/issues"
+  },
+  "homepage": "https://github.com/lindenbark/narusegawa#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "sucrase": "^3.10.1",
+    "typescript": "^3.4.5"
+  }
+}
