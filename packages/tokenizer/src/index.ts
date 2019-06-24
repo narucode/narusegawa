@@ -31,6 +31,7 @@ export interface TokenizeState {
     offset: number;
     startOffset: number;
     phase: Phase;
+    stack: Phase[];
     context: SyntacticContext;
     characters: CodeCharacter[];
 }
@@ -40,6 +41,7 @@ export function getInitialTokenizeState(): TokenizeState {
         offset: 0,
         startOffset: 0,
         phase: Phase.initial,
+        stack: [],
         context: getInitialSyntacticContext(),
         characters: [],
     };
@@ -58,7 +60,6 @@ export function* tokenize(
     eofCharacter: CodeCharacter | null = eof,
 ): IterableIterator<Token> {
     const endToken = (pushResult: PushResult) => {
-        if (state.startOffset == null) throw new Error(); // assertion
         const type = (pushResult[0] === 'emit') ? pushResult[1] : 'unknown';
         const offset = state.startOffset;
         const length = state.offset - offset;
@@ -131,7 +132,7 @@ export function guessTokenTypeFromPhase(phase: Phase): TokenType {
     }
 }
 
-enum Phase {
+const enum Phase {
     initial,
     whitespace,
     newline,
@@ -151,9 +152,12 @@ type PushRules = {
         state: Readonly<TokenizeState>,
     ) => PushResult;
 };
+type Consume = boolean; /* true: consume, false: spit */
 type PushResult =
-    | ['continue', Phase, boolean /* true: consume, false: spit */]
-    | ['emit', TokenType, boolean /* true: consume, false: spit */]
+    | ['push', Phase, Consume]
+    | ['pop', null, Consume]
+    | ['continue', Phase, Consume]
+    | ['emit', TokenType, Consume]
 ;
 const pushTable: PushRules = {
     [Phase.initial](character) {
@@ -248,6 +252,7 @@ const pushTable: PushRules = {
 export function cloneTokenizeState(tokenizeState: TokenizeState): TokenizeState {
     return {
         ...tokenizeState,
+        stack: [...tokenizeState.stack],
         characters: [...tokenizeState.characters],
         context: cloneSyntacticContext(tokenizeState.context),
     };
@@ -257,6 +262,7 @@ export function equalsTokenizeState(a: TokenizeState, b: TokenizeState): boolean
         (a.phase === b.phase) &&
         (a.offset === b.offset) &&
         (a.startOffset === b.startOffset) &&
+        iterEq(a.stack.values(), b.stack.values()) &&
         iterEq(a.characters.values(), b.characters.values())
     );
 }
