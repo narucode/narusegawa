@@ -91,6 +91,7 @@ const scopeMap: { [tokenType in TokenType]: string } = {
     'unquoted_name': '',
     'quoted_name': 'variable.other',
     'placeholder_name': 'variable.other',
-    'number_literal': 'constant.numeric',
+    'number_literal_nat': 'constant.numeric',
+    'number_literal_rat': 'constant.numeric',
     'quoted_literal': 'string.quoted',
 };

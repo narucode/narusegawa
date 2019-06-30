@@ -18,7 +18,8 @@ export type TokenType =
     | 'unquoted_name'
     | 'quoted_name'
     | 'placeholder_name'
-    | 'number_literal'
+    | 'number_literal_nat'
+    | 'number_literal_rat'
     | 'quoted_literal'
 ;
 
@@ -31,8 +32,7 @@ export interface TokenizeState {
     offset: number;
     startOffset: number;
     phase: Phase;
-    stack: Phase[];
-    context: SyntacticContext;
+    syntacticContext: SyntacticContext;
     characters: CodeCharacter[];
 }
 
@@ -41,8 +41,7 @@ export function getInitialTokenizeState(): TokenizeState {
         offset: 0,
         startOffset: 0,
         phase: Phase.initial,
-        stack: [],
-        context: getInitialSyntacticContext(),
+        syntacticContext: getInitialSyntacticContext(),
         characters: [],
     };
 }
@@ -120,14 +119,16 @@ export function guessTokenTypeFromPhase(phase: Phase): TokenType {
         default: return 'unknown';
         case Phase.whitespace: return 'whitespace';
         case Phase.newline: return 'newline';
-        case Phase.newlineCr: return 'newline';
+        case Phase.newline_cr: return 'newline';
         case Phase.comment: return 'comment';
         case Phase.opening_grouping: return 'opening_grouping';
         case Phase.closing_grouping: return 'closing_grouping';
         case Phase.punctuation: return 'punctuation';
         case Phase.unquoted_name: return 'unquoted_name';
         case Phase.quoted_name: return 'quoted_name';
-        case Phase.number_literal: return 'number_literal';
+        case Phase.number_literal_initial: return 'number_literal_nat';
+        case Phase.number_literal_after_first_zero: return 'number_literal_nat';
+        case Phase.number_literal_nat: return 'number_literal_nat';
         case Phase.quoted_literal: return 'quoted_literal';
     }
 }
@@ -136,14 +137,16 @@ const enum Phase {
     initial,
     whitespace,
     newline,
-    newlineCr,
+    newline_cr,
     comment,
     opening_grouping,
     closing_grouping,
     punctuation,
     unquoted_name,
     quoted_name,
-    number_literal,
+    number_literal_initial,
+    number_literal_after_first_zero,
+    number_literal_nat,
     quoted_literal,
 }
 type PushRules = {
@@ -164,7 +167,7 @@ const pushTable: PushRules = {
         switch (character.type) {
             case 'closing_grouping': return ['continue', Phase.closing_grouping, false];
             case 'closing_quote': return ['emit', 'unknown', true];
-            case 'decimal_digit': return ['continue', Phase.number_literal, false];
+            case 'decimal_digit': return ['continue', Phase.number_literal_initial, false];
             case 'horizontal_space': return ['continue', Phase.whitespace, false];
             case 'name_continue': return ['emit', 'unknown', true];
             case 'name_start': return ['continue', Phase.unquoted_name, false];
@@ -182,12 +185,12 @@ const pushTable: PushRules = {
     },
     [Phase.newline](character) {
         if (character.type === 'vertical_space') {
-            if (character.char === '\r') return ['continue', Phase.newlineCr, true];
+            if (character.char === '\r') return ['continue', Phase.newline_cr, true];
             return ['continue', Phase.newline, true];
         }
         return ['emit', 'newline', false];
     },
-    [Phase.newlineCr](character) {
+    [Phase.newline_cr](character) {
         return ['emit', 'newline', character.char === '\n'];
     },
     [Phase.comment](character) {
@@ -215,7 +218,7 @@ const pushTable: PushRules = {
         }
         return ['emit', 'punctuation', false];
     },
-    [Phase.unquoted_name](character, { characters, context }) {
+    [Phase.unquoted_name](character, { characters, syntacticContext }) {
         if (
             (character.type === 'name_start') ||
             (character.type === 'name_continue') ||
@@ -224,7 +227,7 @@ const pushTable: PushRules = {
         if ((characters.length === 1) && (characters[0].char === '_')) {
             return ['emit', 'placeholder_name', false];
         }
-        if (hasKeyword(context, characters.map(character => character.char).join(''))) {
+        if (hasKeyword(syntacticContext, characters.map(character => character.char).join(''))) {
             return ['emit', 'keyword', false];
         }
         return ['emit', 'unquoted_name', false];
@@ -234,10 +237,39 @@ const pushTable: PushRules = {
         if (characters[characters.length - 1].char !== '`') return ['continue', Phase.quoted_name, true];
         return ['emit', 'quoted_name', false];
     },
-    [Phase.number_literal](character) {
-        // TODO
-        if (character.type === 'decimal_digit') return ['continue', Phase.number_literal, true];
-        return ['emit', 'number_literal', false];
+    [Phase.number_literal_initial](character) {
+        if (character.type === 'decimal_digit') {
+            if (character.char === '0') return ['continue', Phase.number_literal_after_first_zero, true];
+            return ['continue', Phase.number_literal_nat, true];
+        }
+        return ['emit', 'unknown', true];
+    },
+    [Phase.number_literal_after_first_zero](character) {
+        if (character.type === 'decimal_digit') {
+            return ['continue', Phase.number_literal_nat, true];
+        }
+        if (character.char === 'b') {
+            // TODO
+        }
+        if (character.char === 'o') {
+            // TODO
+        }
+        if (character.char === 'x') {
+            // TODO
+        }
+        if (character.char === '_') {
+            // TODO
+        }
+        return ['emit', 'number_literal_nat', false];
+    },
+    [Phase.number_literal_nat](character) {
+        if (character.type === 'decimal_digit') {
+            return ['continue', Phase.number_literal_nat, true];
+        }
+        if (character.char === '_') {
+            // TODO
+        }
+        return ['emit', 'number_literal_nat', false];
     },
     [Phase.quoted_literal](_character, { characters }) {
         // TODO
@@ -252,9 +284,8 @@ const pushTable: PushRules = {
 export function cloneTokenizeState(tokenizeState: TokenizeState): TokenizeState {
     return {
         ...tokenizeState,
-        stack: [...tokenizeState.stack],
         characters: [...tokenizeState.characters],
-        context: cloneSyntacticContext(tokenizeState.context),
+        syntacticContext: cloneSyntacticContext(tokenizeState.syntacticContext),
     };
 }
 export function equalsTokenizeState(a: TokenizeState, b: TokenizeState): boolean {
@@ -262,7 +293,6 @@ export function equalsTokenizeState(a: TokenizeState, b: TokenizeState): boolean
         (a.phase === b.phase) &&
         (a.offset === b.offset) &&
         (a.startOffset === b.startOffset) &&
-        iterEq(a.stack.values(), b.stack.values()) &&
         iterEq(a.characters.values(), b.characters.values())
     );
 }
