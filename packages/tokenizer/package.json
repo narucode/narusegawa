@@ -23,7 +23,8 @@
   },
   "homepage": "https://github.com/lindenbark/narusegawa#readme",
   "dependencies": {
-    "@narucode/characterizer": "^0.0.0"
+    "@narucode/characterizer": "^0.0.0",
+    "@narucode/util": "^0.0.0"
   },
   "devDependencies": {
     "sucrase": "^3.10.1",
