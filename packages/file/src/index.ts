@@ -1,3 +1,5 @@
+import { bisect } from '@narucode/util';
+
 export interface NaruFile {
     uri?: string;
     text: string;
@@ -60,18 +62,4 @@ export function getLines(text: string): number[] {
         }
     }
     return result;
-}
-
-function bisect(
-    a: number[],
-    x: number,
-    lo: number = 0,
-    hi: number = a.length,
-) {
-    while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (x < a[mid]) hi = mid;
-        else lo = mid + 1;
-    }
-    return lo;
 }

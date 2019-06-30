@@ -1,5 +1,5 @@
 {
-  "name": "@narucode/file",
+  "name": "@narucode/util",
   "version": "0.0.0",
   "description": "",
   "main": "lib/index.js",
@@ -22,9 +22,7 @@
     "url": "https://github.com/lindenbark/narusegawa/issues"
   },
   "homepage": "https://github.com/lindenbark/narusegawa#readme",
-  "dependencies": {
-    "@narucode/util": "^0.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "sucrase": "^3.10.1",
     "typescript": "^3.4.5"
